@@ -1,6 +1,16 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: MoodMark - S3, Lambda, API Gateway (MVP)
 
+# --- Deployment Instructions ---
+# 1. The stack will create the Lambda deployment S3 bucket (LambdaCodeBucket) if it does not exist.
+# 2. After stack creation starts, upload your Lambda deployment packages to the bucket:
+#      aws s3 cp path/to/log_activity.zip s3://<your-lambda-code-bucket>/log_activity.zip
+#      aws s3 cp path/to/get_suggestion.zip s3://<your-lambda-code-bucket>/get_suggestion.zip
+#    (Replace <your-lambda-code-bucket> with the value you use for LambdaCodeBucket)
+# 3. If the stack fails on first run due to missing Lambda code, re-run the stack update after uploading the .zip files.
+# 4. Ensure all parameter values in infra/moodmark-parameters.json are correct for your environment.
+# ------------------------------
+
 Parameters:
   S3BucketName:
     Type: String
@@ -41,6 +51,10 @@ Parameters:
     Description: Google AI API Key for Lambda (if needed)
 
 Resources:
+  LambdaCodeS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref LambdaCodeBucket
   MoodMarkS3Bucket:
     Type: AWS::S3::Bucket
     Properties:
