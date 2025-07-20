@@ -33,3 +33,11 @@ jobs:
             --stack-name moodmark-stack \
             --capabilities CAPABILITY_NAMED_IAM \
             --parameter-overrides file://infra/moodmark-parameters.json
+
+      - name: Upload Lambda deployment packages to S3
+        run: |
+          aws s3 cp backend/log_activity.zip s3://${{ fromJson(join(' ', fromJson(steps.read_params.outputs.content))).LambdaCodeBucket }}/log_activity.zip
+          aws s3 cp backend/get_suggestion.zip s3://${{ fromJson(join(' ', fromJson(steps.read_params.outputs.content))).LambdaCodeBucket }}/get_suggestion.zip
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        if: always()
