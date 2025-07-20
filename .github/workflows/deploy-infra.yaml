@@ -26,6 +26,35 @@ jobs:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      - name: Extract LambdaCodeBucket from parameters file
+        id: extract_bucket
+        run: |
+          echo "bucket=$(jq -r '.[] | select(.ParameterKey==\"LambdaCodeBucket\") | .ParameterValue' infra/moodmark-parameters.json)" >> $GITHUB_OUTPUT
+
+      - name: Create LambdaCodeBucket if it does not exist
+        run: |
+          if ! aws s3api head-bucket --bucket "${{ steps.extract_bucket.outputs.bucket }}" 2>/dev/null; then
+            aws s3api create-bucket --bucket "${{ steps.extract_bucket.outputs.bucket }}" --region ${{ secrets.AWS_REGION }} --create-bucket-configuration LocationConstraint=${{ secrets.AWS_REGION }}
+          else
+            echo "Bucket ${{ steps.extract_bucket.outputs.bucket }} already exists."
+          fi
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+
+      - name: Zip Lambda code
+        run: |
+          cd backend
+          zip -r ../log_activity.zip log_activity.py
+          zip -r ../get_suggestion.zip get_suggestion.py
+          cd ..
+
+      - name: Upload Lambda deployment packages to S3
+        run: |
+          aws s3 cp log_activity.zip s3://${{ steps.extract_bucket.outputs.bucket }}/log_activity.zip
+          aws s3 cp get_suggestion.zip s3://${{ steps.extract_bucket.outputs.bucket }}/get_suggestion.zip
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+
       - name: Deploy CloudFormation stack
         run: |
           aws cloudformation deploy \
@@ -33,16 +62,3 @@ jobs:
             --stack-name moodmark-stack \
             --capabilities CAPABILITY_NAMED_IAM \
             --parameter-overrides file://infra/moodmark-parameters.json
-
-      - name: Extract LambdaCodeBucket from parameters file
-        id: extract_bucket
-        run: |
-          echo "bucket=$(jq -r '.[] | select(.ParameterKey=="LambdaCodeBucket") | .ParameterValue' infra/moodmark-parameters.json)" >> $GITHUB_OUTPUT
-
-      - name: Upload Lambda deployment packages to S3
-        run: |
-          aws s3 cp backend/log_activity.zip s3://${{ steps.extract_bucket.outputs.bucket }}/log_activity.zip
-          aws s3 cp backend/get_suggestion.zip s3://${{ steps.extract_bucket.outputs.bucket }}/get_suggestion.zip
-        env:
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-        if: always()

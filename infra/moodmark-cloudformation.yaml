@@ -51,10 +51,6 @@ Parameters:
     Description: Google AI API Key for Lambda (if needed)
 
 Resources:
-  LambdaCodeS3Bucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: !Ref LambdaCodeBucket
   MoodMarkS3Bucket:
     Type: AWS::S3::Bucket
     Properties:
