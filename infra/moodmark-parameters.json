@@ -5,7 +5,7 @@
   },
   {
     "ParameterKey": "LambdaCodeBucket",
-    "ParameterValue": "your-lambda-code-bucket"
+    "ParameterValue": "moodmark-lambda-code-bucket"
   },
   {
     "ParameterKey": "LogActivityLambdaFunctionName",
