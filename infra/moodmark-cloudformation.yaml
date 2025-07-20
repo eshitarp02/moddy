@@ -1,0 +1,157 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: MoodMark - S3, Lambda, API Gateway (MVP)
+
+Parameters:
+  S3BucketName:
+    Type: String
+    Default: moodmark-user-logs
+    Description: S3 bucket for storing user activity logs
+
+Resources:
+  MoodMarkS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref S3BucketName
+
+  LogActivityLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: S3WritePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                Resource: !Sub arn:aws:s3:::${S3BucketName}/*
+
+  LogActivityLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: log-activity
+      Handler: log_activity.lambda_handler
+      Role: !GetAtt LogActivityLambdaRole.Arn
+      Runtime: python3.9
+      Timeout: 10
+      Environment:
+        Variables:
+          S3_BUCKET: !Ref S3BucketName
+      Code:
+        S3Bucket: <your-lambda-code-bucket>
+        S3Key: log_activity.zip
+
+  GetSuggestionLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: S3ReadPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub arn:aws:s3:::${S3BucketName}
+                  - !Sub arn:aws:s3:::${S3BucketName}/*
+
+  GetSuggestionLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: get-suggestion
+      Handler: get_suggestion.lambda_handler
+      Role: !GetAtt GetSuggestionLambdaRole.Arn
+      Runtime: python3.9
+      Timeout: 15
+      Environment:
+        Variables:
+          S3_BUCKET: !Ref S3BucketName
+          GOOGLE_AI_API_KEY: <your-google-ai-api-key>
+      Code:
+        S3Bucket: <your-lambda-code-bucket>
+        S3Key: get_suggestion.zip
+
+  LogActivityApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: MoodMarkAPI
+
+  LogActivityResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref LogActivityApi
+      ParentId: !GetAtt LogActivityApi.RootResourceId
+      PathPart: log-activity
+
+  LogActivityMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref LogActivityApi
+      ResourceId: !Ref LogActivityResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - { LambdaArn: !GetAtt LogActivityLambda.Arn }
+
+  GetSuggestionResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref LogActivityApi
+      ParentId: !GetAtt LogActivityApi.RootResourceId
+      PathPart: get-suggestion
+
+  GetSuggestionMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref LogActivityApi
+      ResourceId: !Ref GetSuggestionResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - { LambdaArn: !GetAtt GetSuggestionLambda.Arn }
+
+  LambdaInvokePermissionLog:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt LogActivityLambda.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+
+  LambdaInvokePermissionSuggest:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt GetSuggestionLambda.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+
+Outputs:
+  ApiUrl:
+    Description: "Base URL for MoodMark API"
+    Value: !Sub "https://${LogActivityApi}.execute-api.${AWS::Region}.amazonaws.com/prod"
+  S3Bucket:
+    Description: "S3 bucket for activity logs"
+    Value: !Ref S3BucketName
