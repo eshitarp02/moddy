@@ -1,0 +1,34 @@
+[
+  {
+    "ParameterKey": "S3BucketName",
+    "ParameterValue": "moodmark-user-logs"
+  },
+  {
+    "ParameterKey": "LambdaCodeBucket",
+    "ParameterValue": "your-lambda-code-bucket"
+  },
+  {
+    "ParameterKey": "LogActivityLambdaFunctionName",
+    "ParameterValue": "log-activity"
+  },
+  {
+    "ParameterKey": "GetSuggestionLambdaFunctionName",
+    "ParameterValue": "get-suggestion"
+  },
+  {
+    "ParameterKey": "LogActivityZipKey",
+    "ParameterValue": "log_activity.zip"
+  },
+  {
+    "ParameterKey": "GetSuggestionZipKey",
+    "ParameterValue": "get_suggestion.zip"
+  },
+  {
+    "ParameterKey": "ApiGatewayName",
+    "ParameterValue": "MoodMarkAPI"
+  },
+  {
+    "ParameterKey": "GoogleAiApiKey",
+    "ParameterValue": "your-google-ai-api-key"
+  }
+]
