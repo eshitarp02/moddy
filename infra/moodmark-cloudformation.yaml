@@ -7,6 +7,39 @@ Parameters:
     Default: moodmark-user-logs
     Description: S3 bucket for storing user activity logs
 
+  LambdaCodeBucket:
+    Type: String
+    Description: S3 bucket containing Lambda deployment packages
+
+  LogActivityLambdaFunctionName:
+    Type: String
+    Default: log-activity
+    Description: Name for the Log Activity Lambda function
+
+  GetSuggestionLambdaFunctionName:
+    Type: String
+    Default: get-suggestion
+    Description: Name for the Get Suggestion Lambda function
+
+  LogActivityZipKey:
+    Type: String
+    Default: log_activity.zip
+    Description: S3 key for Log Activity Lambda deployment package
+
+  GetSuggestionZipKey:
+    Type: String
+    Default: get_suggestion.zip
+    Description: S3 key for Get Suggestion Lambda deployment package
+
+  ApiGatewayName:
+    Type: String
+    Default: MoodMarkAPI
+    Description: Name for the API Gateway
+
+  GoogleAiApiKey:
+    Type: String
+    Description: Google AI API Key for Lambda (if needed)
+
 Resources:
   MoodMarkS3Bucket:
     Type: AWS::S3::Bucket
@@ -36,7 +69,7 @@ Resources:
   LogActivityLambda:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: log-activity
+      FunctionName: !Ref LogActivityLambdaFunctionName
       Handler: log_activity.lambda_handler
       Role: !GetAtt LogActivityLambdaRole.Arn
       Runtime: python3.9
@@ -45,8 +78,8 @@ Resources:
         Variables:
           S3_BUCKET: !Ref S3BucketName
       Code:
-        S3Bucket: <your-lambda-code-bucket>
-        S3Key: log_activity.zip
+        S3Bucket: !Ref LambdaCodeBucket
+        S3Key: !Ref LogActivityZipKey
 
   GetSuggestionLambdaRole:
     Type: AWS::IAM::Role
@@ -74,7 +107,7 @@ Resources:
   GetSuggestionLambda:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: get-suggestion
+      FunctionName: !Ref GetSuggestionLambdaFunctionName
       Handler: get_suggestion.lambda_handler
       Role: !GetAtt GetSuggestionLambdaRole.Arn
       Runtime: python3.9
@@ -82,15 +115,15 @@ Resources:
       Environment:
         Variables:
           S3_BUCKET: !Ref S3BucketName
-          GOOGLE_AI_API_KEY: <your-google-ai-api-key>
+          GOOGLE_AI_API_KEY: !Ref GoogleAiApiKey
       Code:
-        S3Bucket: <your-lambda-code-bucket>
-        S3Key: get_suggestion.zip
+        S3Bucket: !Ref LambdaCodeBucket
+        S3Key: !Ref GetSuggestionZipKey
 
   LogActivityApi:
     Type: AWS::ApiGateway::RestApi
     Properties:
-      Name: MoodMarkAPI
+      Name: !Ref ApiGatewayName
 
   LogActivityResource:
     Type: AWS::ApiGateway::Resource

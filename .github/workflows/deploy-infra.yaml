@@ -32,4 +32,4 @@ jobs:
             --template-file infra/moodmark-cloudformation.yaml \
             --stack-name moodmark-stack \
             --capabilities CAPABILITY_NAMED_IAM \
-            --parameter-overrides S3BucketName=moodmark-user-logs
+            --parameter-overrides file://infra/moodmark-parameters.json
