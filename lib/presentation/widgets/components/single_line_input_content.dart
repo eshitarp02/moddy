@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:to_do_app/core/consts/strings.dart';
 import 'package:to_do_app/core/utils/palette.dart';
 import 'package:to_do_app/core/utils/string_extension.dart';
 import 'package:to_do_app/presentation/widgets/components/text_view_medium.dart';
@@ -91,12 +90,14 @@ class SingleLineInputContentState extends State<SingleLineInputContent> {
         TextFormField(
           key: const ValueKey('${SingleLineInputContent.keyPrefix}-TextField'),
           style: Theme.of(context).textTheme.bodyMedium,
-          textAlignVertical: widget.isMultiLine == true
-              ? TextAlignVertical.top
-              : null, // Align text to top
+          textAlignVertical:
+              widget.isMultiLine == true ? TextAlignVertical.top : null,
+          // Align text to top
           decoration: widget.isMultiLine
               ? InputDecoration(
-                  hintText: Strings.typeHere,
+                  filled: true,
+                  fillColor: Colors.white,
+                  hintText: widget.hintText,
                   hintStyle: Theme.of(context).textTheme.titleSmall!.copyWith(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
@@ -125,18 +126,40 @@ class SingleLineInputContentState extends State<SingleLineInputContent> {
                     );
                   } else {
                     return InputDecoration(
+                      filled: true,
+                      fillColor: Colors.white,
+                      hintText: widget.hintText,
+                      hintStyle:
+                          Theme.of(context).textTheme.titleSmall!.copyWith(
+                                fontWeight: FontWeight.w400,
+                                fontSize: 11.0,
+                                color: Color(0XFFA9A0A0),
+                              ),
+                      border: InputBorder.none,
                       enabledBorder: const OutlineInputBorder(
-                          borderSide:
-                              BorderSide(width: 0.5, color: Colors.grey)),
+                        borderSide: BorderSide(
+                          width: 1.0,
+                          color: Colors.black,
+                        ),
+                      ),
                       focusedBorder: OutlineInputBorder(
                         borderSide: BorderSide(
-                            width: 1,
-                            color: Theme.of(context).colorScheme.primary),
+                          width: 1.0,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                       ),
                       errorBorder: const OutlineInputBorder(
-                          borderSide: BorderSide(width: 1, color: Colors.red)),
+                        borderSide: BorderSide(
+                          width: 1,
+                          color: Colors.red,
+                        ),
+                      ),
                       focusedErrorBorder: const OutlineInputBorder(
-                          borderSide: BorderSide(width: 1, color: Colors.red)),
+                        borderSide: BorderSide(
+                          width: 1,
+                          color: Colors.red,
+                        ),
+                      ),
                       errorStyle: const TextStyle(
                         color: Colors.red,
                       ),

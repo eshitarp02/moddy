@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:to_do_app/blocs/sign_up/sign_up_bloc.dart';
-import 'package:to_do_app/core/utils/palette.dart';
 import 'package:to_do_app/core/utils/ui_extension.dart';
 import 'package:to_do_app/presentation/widgets/loading_widget.dart';
 import 'package:to_do_app/presentation/widgets/sign_up/sign_up_widget.dart';
@@ -10,6 +9,7 @@ import 'package:to_do_app/routes/routes.dart';
 
 class SignUpView extends StatelessWidget {
   static const keyPrefix = 'SignUpView';
+
   const SignUpView({super.key});
 
   @override
@@ -33,47 +33,15 @@ class SignUpView extends StatelessWidget {
       builder: (context, state) {
         if (state is SignUpOnLoadState) {
           return Scaffold(
-            body: Stack(
-              children: [
-                Column(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        color: Palette.primaryBlue,
-                      ),
-                    ),
-                    Expanded(
-                      child: Container(
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-                Positioned.fill(
-                  child: Align(
-                    alignment: Alignment.center,
-                    child: Container(
-                      height: MediaQuery.of(context).size.height * .85,
-                      width: MediaQuery.of(context).size.width * .75,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(color: Palette.borderColor),
-                      ),
-                      child: SignUpWidget(
-                        firstName: state.firstName,
-                        lastName: state.lastName,
-                        email: state.email,
-                        password: state.password,
-                        confirmPassword: state.confirmPassword,
-                        isPasswordObscured: state.isPasswordObscured,
-                        isConfirmPasswordObscured:
-                            state.isConfirmPasswordObscured,
-                        isSignUpInProgress: state.isSignUpInProgress,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+            body: SignUpWidget(
+              firstName: state.firstName,
+              lastName: state.lastName,
+              email: state.email,
+              password: state.password,
+              confirmPassword: state.confirmPassword,
+              isPasswordObscured: state.isPasswordObscured,
+              isConfirmPasswordObscured: state.isConfirmPasswordObscured,
+              isSignUpInProgress: state.isSignUpInProgress,
             ),
           );
         } else {
