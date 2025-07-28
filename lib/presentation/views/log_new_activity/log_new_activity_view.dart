@@ -98,7 +98,7 @@ class LogNewActivityView extends StatelessWidget {
                               textInputAction: TextInputAction.next,
                               title: '',
                               hintText: 'Activity',
-                              userResponse: '',
+                              userResponse: state.activity,
                               editTextType: Strings.activity,
                               onChanged: (String activity) {
                                 BlocProvider.of<LogNewActivityBloc>(context)
@@ -114,12 +114,34 @@ class LogNewActivityView extends StatelessWidget {
                           SizedBox(
                             width: MediaQuery.of(context).size.width * .7,
                             child: SingleLineInputContent(
+                              key: const ValueKey('$keyPrefix-description'),
+                              textInputAction: TextInputAction.next,
+                              title: '',
+                              hintText: 'Description',
+                              userResponse: state.description,
+                              editTextType: Strings.description,
+                              maxLines: 4,
+                              minLines: 4,
+                              onChanged: (String description) {
+                                BlocProvider.of<LogNewActivityBloc>(context)
+                                    .add(
+                                  LogNewActivityDetailsUpdateEvent(
+                                    description: description,
+                                  ),
+                                );
+                              },
+                              onSubmitted: (String value) {},
+                            ),
+                          ),
+                          SizedBox(
+                            width: MediaQuery.of(context).size.width * .7,
+                            child: SingleLineInputContent(
                               key: const ValueKey('$keyPrefix-bookmark'),
                               textInputAction: TextInputAction.next,
                               title: '',
                               hintText: 'Bookmark',
-                              userResponse: '',
-                              editTextType: Strings.activity,
+                              userResponse: state.bookmark,
+                              editTextType: Strings.bookmark,
                               onChanged: (String bookmark) {
                                 BlocProvider.of<LogNewActivityBloc>(context)
                                     .add(
@@ -138,7 +160,7 @@ class LogNewActivityView extends StatelessWidget {
                               textInputAction: TextInputAction.next,
                               title: '',
                               hintText: 'Mood (Optional)',
-                              userResponse: '',
+                              userResponse: state.mood,
                               editTextType: Strings.mood,
                               onChanged: (String mood) {
                                 BlocProvider.of<LogNewActivityBloc>(context)
@@ -249,7 +271,7 @@ class LogNewActivityView extends StatelessWidget {
               ),
               Positioned(
                 left: -MediaQuery.of(context).size.height * .01,
-                bottom: MediaQuery.of(context).size.width * .14,
+                bottom: MediaQuery.of(context).size.width * .16,
                 child: Image.asset(
                   AssetPNGImages.stars,
                   height: 120.0,

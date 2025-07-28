@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 part 'log_new_activity_event.dart';
+
 part 'log_new_activity_state.dart';
 
 class LogNewActivityBloc
@@ -29,6 +30,7 @@ class LogNewActivityBloc
     emit(
       castState.copyWith(
         activity: event.activity ?? castState.activity,
+        description: event.description ?? castState.description,
         bookmark: event.bookmark ?? castState.bookmark,
         mood: event.mood ?? castState.mood,
       ),

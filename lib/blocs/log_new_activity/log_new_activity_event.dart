@@ -13,11 +13,13 @@ class LogNewActivityOnLoadEvent extends LogNewActivityEvent {
 
 class LogNewActivityDetailsUpdateEvent extends LogNewActivityEvent {
   final String? activity;
+  final String? description;
   final String? bookmark;
   final String? mood;
 
   const LogNewActivityDetailsUpdateEvent({
     this.activity,
+    this.description,
     this.bookmark,
     this.mood,
   });
@@ -25,6 +27,7 @@ class LogNewActivityDetailsUpdateEvent extends LogNewActivityEvent {
   @override
   List<Object?> get props => [
         activity,
+        description,
         bookmark,
         mood,
       ];

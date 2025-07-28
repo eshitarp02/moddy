@@ -23,6 +23,8 @@ class SingleLineInputContent extends StatefulWidget {
   final bool? enabledField;
   final String? userResponse;
   final bool isMultiLine;
+  final int? maxLines;
+  final int? minLines;
 
   const SingleLineInputContent({
     super.key,
@@ -42,6 +44,8 @@ class SingleLineInputContent extends StatefulWidget {
     this.userResponse,
     this.textInputAction,
     this.isMultiLine = false,
+    this.maxLines = 1,
+    this.minLines = 1,
   });
 
   @override
@@ -168,8 +172,8 @@ class SingleLineInputContentState extends State<SingleLineInputContent> {
                     );
                   }
                 }()),
-          minLines: widget.isMultiLine ? null : 1,
-          maxLines: widget.isMultiLine ? null : 1,
+          minLines: widget.minLines,
+          maxLines: widget.maxLines,
           obscureText: widget.obscureText ?? false,
           controller: textEditingController,
           onChanged: (value) {
