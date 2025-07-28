@@ -35,7 +35,7 @@ class LoginWidget extends StatelessWidget {
             decoration: BoxDecoration(
               image: DecorationImage(
                 image: AssetImage(
-                  AssetPNGImages.loginBackGround,
+                  AssetPNGImages.appBackGround,
                 ),
                 fit: BoxFit.fill,
               ),
@@ -101,6 +101,7 @@ class LoginWidget extends StatelessWidget {
                           textInputAction: TextInputAction.next,
                           title: '',
                           hintText: 'Password',
+                          obscureText: true,
                           userResponse: password,
                           editTextType: Strings.password,
                           onChanged: (String value) {

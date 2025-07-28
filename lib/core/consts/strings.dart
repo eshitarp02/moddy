@@ -9,6 +9,9 @@ class Strings {
   static const String phone = 'phone';
   static const String url = 'url';
   static const String password = 'password';
+  static const String activity = 'activity';
+  static const String bookmark = 'bookmark';
+  static const String mood = 'mood';
 
   // app content
   static const typeHere = 'Type here...';

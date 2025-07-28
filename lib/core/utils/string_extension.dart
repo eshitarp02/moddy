@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:to_do_app/core/consts/strings.dart';
 import 'package:to_do_app/core/utils/validation.dart';
 
+final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+
 extension KeyBoardType on String {
   TextInputType get getTextInput {
     switch (this) {

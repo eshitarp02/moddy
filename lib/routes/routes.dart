@@ -3,7 +3,9 @@ import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:to_do_app/domain/repositories/auth/auth_repository.dart';
 import 'package:to_do_app/presentation/pages/home/home_page.dart';
+import 'package:to_do_app/presentation/pages/log_new_activity/log_new_activity_page.dart';
 import 'package:to_do_app/presentation/pages/login/login_page.dart';
+import 'package:to_do_app/presentation/views/app_wrapper_view.dart';
 import 'package:to_do_app/routes/route_observer.dart';
 
 import '../presentation/pages/sign_up/sign_up_page.dart';
@@ -42,10 +44,22 @@ final router = GoRouter(
       path: Routes.signUp.path,
       pageBuilder: Routes.signUp.pageBuilder,
     ),
-    GoRoute(
-      name: Routes.home.name,
-      path: Routes.home.path,
-      pageBuilder: Routes.home.pageBuilder,
+    ShellRoute(
+      builder: (context, state, child) => AppWrapperView(
+        child: child,
+      ),
+      routes: [
+        GoRoute(
+          name: Routes.home.name,
+          path: Routes.home.path,
+          pageBuilder: Routes.home.pageBuilder,
+        ),
+        GoRoute(
+          name: Routes.logNewActivity.name,
+          path: Routes.logNewActivity.path,
+          pageBuilder: Routes.logNewActivity.pageBuilder,
+        ),
+      ],
     ),
   ],
 );
@@ -91,6 +105,14 @@ class Routes {
     pageBuilder: (context, state) => MaterialPage(
       key: state.pageKey,
       child: const HomePage(),
+    ),
+  );
+  static RouteInfo logNewActivity = RouteInfo(
+    name: 'logNewActivity',
+    path: '/logNewActivity',
+    pageBuilder: (context, state) => MaterialPage(
+      key: state.pageKey,
+      child: const LogNewActivityPage(),
     ),
   );
 }

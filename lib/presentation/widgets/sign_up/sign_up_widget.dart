@@ -42,7 +42,7 @@ class SignUpWidget extends StatelessWidget {
           decoration: BoxDecoration(
             image: DecorationImage(
               image: AssetImage(
-                AssetPNGImages.loginBackGround,
+                AssetPNGImages.appBackGround,
               ),
               fit: BoxFit.fill,
             ),
