@@ -76,7 +76,7 @@ class LoginWidget extends StatelessWidget {
                                 ),
                       ),
                       SizedBox(
-                        width: MediaQuery.of(context).size.width * .3,
+                        width: MediaQuery.of(context).size.width * .7,
                         child: SingleLineInputContent(
                           key: const ValueKey('$keyPrefix-Email'),
                           textInputAction: TextInputAction.next,
@@ -95,7 +95,7 @@ class LoginWidget extends StatelessWidget {
                         ),
                       ),
                       SizedBox(
-                        width: MediaQuery.of(context).size.width * .3,
+                        width: MediaQuery.of(context).size.width * .7,
                         child: SingleLineInputContent(
                           key: const ValueKey('$keyPrefix-password'),
                           textInputAction: TextInputAction.next,
@@ -119,7 +119,7 @@ class LoginWidget extends StatelessWidget {
                           top: 25.0,
                         ),
                         child: SizedBox(
-                          width: MediaQuery.of(context).size.width * .33,
+                          width: MediaQuery.of(context).size.width * .8,
                           child: ElevatedButton(
                             onPressed: () {
                               BlocProvider.of<LoginBloc>(context).add(
@@ -208,7 +208,7 @@ class LoginWidget extends StatelessWidget {
           ),
           Positioned(
             top: MediaQuery.of(context).size.height * .21,
-            left: MediaQuery.of(context).size.width * .43,
+            left: MediaQuery.of(context).size.width * .31,
             child: Image.asset(
               AssetPNGImages.loginImage,
               height: 157.0,

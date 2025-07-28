@@ -61,8 +61,8 @@ class LogNewActivityView extends StatelessWidget {
                   Expanded(
                     child: Container(
                       margin: const EdgeInsets.only(
-                        left: 60.0,
-                        right: 60.0,
+                        left: 35.0,
+                        right: 35.0,
                         top: 70.0,
                       ),
                       width: MediaQuery.of(context).size.width,
@@ -92,7 +92,7 @@ class LogNewActivityView extends StatelessWidget {
                             ),
                           ),
                           SizedBox(
-                            width: MediaQuery.of(context).size.width * .3,
+                            width: MediaQuery.of(context).size.width * .7,
                             child: SingleLineInputContent(
                               key: const ValueKey('$keyPrefix-activity'),
                               textInputAction: TextInputAction.next,
@@ -112,7 +112,7 @@ class LogNewActivityView extends StatelessWidget {
                             ),
                           ),
                           SizedBox(
-                            width: MediaQuery.of(context).size.width * .3,
+                            width: MediaQuery.of(context).size.width * .7,
                             child: SingleLineInputContent(
                               key: const ValueKey('$keyPrefix-bookmark'),
                               textInputAction: TextInputAction.next,
@@ -132,7 +132,7 @@ class LogNewActivityView extends StatelessWidget {
                             ),
                           ),
                           SizedBox(
-                            width: MediaQuery.of(context).size.width * .3,
+                            width: MediaQuery.of(context).size.width * .7,
                             child: SingleLineInputContent(
                               key: const ValueKey('$keyPrefix-mood'),
                               textInputAction: TextInputAction.next,
@@ -154,7 +154,7 @@ class LogNewActivityView extends StatelessWidget {
                           Padding(
                             padding: const EdgeInsets.only(top: 35.0),
                             child: SizedBox(
-                              width: MediaQuery.of(context).size.width * .25,
+                              width: MediaQuery.of(context).size.width * .65,
                               child: ElevatedButton(
                                 onPressed: () {
                                   BlocProvider.of<LogNewActivityBloc>(context)
@@ -189,7 +189,7 @@ class LogNewActivityView extends StatelessWidget {
                           Padding(
                             padding: const EdgeInsets.only(top: 20.0),
                             child: SizedBox(
-                              width: MediaQuery.of(context).size.width * .25,
+                              width: MediaQuery.of(context).size.width * .65,
                               child: ElevatedButton(
                                 onPressed: () {
                                   Navigator.of(context).maybePop();
@@ -230,8 +230,8 @@ class LogNewActivityView extends StatelessWidget {
                 ],
               ),
               Positioned(
-                top: MediaQuery.of(context).size.height * .07,
-                left: MediaQuery.of(context).size.width * .43,
+                top: MediaQuery.of(context).size.height * .06,
+                left: MediaQuery.of(context).size.width * .30,
                 child: Image.asset(
                   AssetPNGImages.logNewActivity,
                   height: 175.0,
@@ -239,8 +239,8 @@ class LogNewActivityView extends StatelessWidget {
                 ),
               ),
               Positioned(
-                right: -MediaQuery.of(context).size.height * .02,
-                top: MediaQuery.of(context).size.width * .10,
+                right: -MediaQuery.of(context).size.height * .04,
+                top: MediaQuery.of(context).size.width * .25,
                 child: Image.asset(
                   AssetPNGImages.uranusPlanet,
                   height: 157.0,
@@ -249,11 +249,11 @@ class LogNewActivityView extends StatelessWidget {
               ),
               Positioned(
                 left: -MediaQuery.of(context).size.height * .01,
-                bottom: MediaQuery.of(context).size.width * .07,
+                bottom: MediaQuery.of(context).size.width * .14,
                 child: Image.asset(
                   AssetPNGImages.stars,
-                  height: 157.0,
-                  width: 157.0,
+                  height: 120.0,
+                  width: 120.0,
                 ),
               ),
             ],

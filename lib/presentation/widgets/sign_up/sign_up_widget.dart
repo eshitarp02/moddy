@@ -97,7 +97,7 @@ class SignUpWidget extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.only(top: 5.0),
                         child: SizedBox(
-                          width: MediaQuery.of(context).size.width * .3,
+                          width: MediaQuery.of(context).size.width * .7,
                           child: SingleLineInputContent(
                             key: const ValueKey('$keyPrefix-FirstName'),
                             textInputAction: TextInputAction.next,
@@ -117,7 +117,7 @@ class SignUpWidget extends StatelessWidget {
                         ),
                       ),
                       SizedBox(
-                        width: MediaQuery.of(context).size.width * .3,
+                        width: MediaQuery.of(context).size.width * .7,
                         child: SingleLineInputContent(
                           key: const ValueKey('$keyPrefix-LastName'),
                           textInputAction: TextInputAction.next,
@@ -136,7 +136,7 @@ class SignUpWidget extends StatelessWidget {
                         ),
                       ),
                       SizedBox(
-                        width: MediaQuery.of(context).size.width * .3,
+                        width: MediaQuery.of(context).size.width * .7,
                         child: SingleLineInputContent(
                           key: const ValueKey('$keyPrefix-Email'),
                           textInputAction: TextInputAction.next,
@@ -155,7 +155,7 @@ class SignUpWidget extends StatelessWidget {
                         ),
                       ),
                       SizedBox(
-                        width: MediaQuery.of(context).size.width * .3,
+                        width: MediaQuery.of(context).size.width * .7,
                         child: SingleLineInputContent(
                           key: const ValueKey('$keyPrefix-Password'),
                           obscureText: isPasswordObscured,
@@ -190,7 +190,7 @@ class SignUpWidget extends StatelessWidget {
                         ),
                       ),
                       SizedBox(
-                        width: MediaQuery.of(context).size.width * .3,
+                        width: MediaQuery.of(context).size.width * .7,
                         child: SingleLineInputContent(
                           key: const ValueKey('$keyPrefix-Confirm-Password'),
                           obscureText: isConfirmPasswordObscured,
@@ -229,7 +229,7 @@ class SignUpWidget extends StatelessWidget {
                           top: 20.0,
                         ),
                         child: SizedBox(
-                          width: MediaQuery.of(context).size.width * .33,
+                          width: MediaQuery.of(context).size.width * .8,
                           child: ElevatedButton(
                             onPressed: () {
                               BlocProvider.of<SignUpBloc>(context).add(
@@ -309,7 +309,7 @@ class SignUpWidget extends StatelessWidget {
         ),
         Positioned(
           top: MediaQuery.of(context).size.height * .11,
-          left: MediaQuery.of(context).size.width * .43,
+          left: MediaQuery.of(context).size.width * .31,
           child: Image.asset(
             AssetPNGImages.loginImage,
             height: 157.0,
