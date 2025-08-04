@@ -6,6 +6,10 @@ from botocore.exceptions import ClientError
 s3 = boto3.client('s3')
 BUCKET_NAME = os.environ.get('S3_BUCKET', 'hobbymark-activity-logs')
 
+CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*"
+}
+
 def lambda_handler(event, context):
     try:
         user_id = event.get('queryStringParameters', {}).get('user_id')
@@ -13,6 +17,7 @@ def lambda_handler(event, context):
         if not user_id:
             return {
                 "statusCode": 400,
+                "headers": CORS_HEADERS,
                 "body": json.dumps({"error": "Missing 'user_id' in query parameters."})
             }
 
@@ -26,6 +31,7 @@ def lambda_handler(event, context):
         if 'Contents' not in response:
             return {
                 "statusCode": 404,
+                "headers": CORS_HEADERS,
                 "body": json.dumps({"message": "No activity logs found for user."})
             }
 
@@ -40,17 +46,20 @@ def lambda_handler(event, context):
 
         return {
             "statusCode": 200,
+            "headers": CORS_HEADERS,
             "body": json.dumps({"activities": activities})
         }
 
     except ClientError as e:
         return {
             "statusCode": 500,
+            "headers": CORS_HEADERS,
             "body": json.dumps({"error": "S3 access error.", "details": str(e)})
         }
 
     except Exception as e:
         return {
             "statusCode": 500,
+            "headers": CORS_HEADERS,
             "body": json.dumps({"error": "Internal server error.", "details": str(e)})
         }
