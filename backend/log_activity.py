@@ -1,5 +1,6 @@
 import os
 import json
+import uuid
 import boto3
 import logging
 from datetime import datetime
@@ -42,11 +43,14 @@ def lambda_handler(event, context):
         bookmark = data.get('bookmark')
 
         # Parse timestamp
-        dt_obj = datetime.fromisoformat(timestamp)  # expects ISO format: "2025-08-01T14:00:00"
+        dt_obj = datetime.fromisoformat(timestamp)  # ISO format: "2025-08-01T14:00:00"
         date_folder = dt_obj.strftime('%Y-%m-%d')
-        time_filename = dt_obj.strftime('%H-%M-%S') + '.json'
 
-        # Clean user_id
+        # Generate unique filename using microseconds and UUID
+        unique_id = str(uuid.uuid4())[:8]
+        time_filename = dt_obj.strftime('%H-%M-%S-%f') + f"_{unique_id}.json"
+
+        # Clean user_id for safe S3 path
         safe_user_id = "".join(c for c in user_id if c.isalnum() or c in ('-', '_'))
 
         # S3 key format
