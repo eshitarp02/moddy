@@ -1,16 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: MoodMark - S3, Lambda, API Gateway (MVP)
 
-# --- Deployment Instructions ---
-# 1. The stack will create the Lambda deployment S3 bucket (LambdaCodeBucket) if it does not exist.
-# 2. After stack creation starts, upload your Lambda deployment packages to the bucket:
-#      aws s3 cp path/to/log_activity.zip s3://<your-lambda-code-bucket>/log_activity.zip
-#      aws s3 cp path/to/get_suggestion.zip s3://<your-lambda-code-bucket>/get_suggestion.zip
-#    (Replace <your-lambda-code-bucket> with the value you use for LambdaCodeBucket)
-# 3. If the stack fails on first run due to missing Lambda code, re-run the stack update after uploading the .zip files.
-# 4. Ensure all parameter values in infra/moodmark-parameters.json are correct for your environment.
-# ------------------------------
-
 Parameters:
   S3BucketName:
     Type: String
@@ -31,6 +21,11 @@ Parameters:
     Default: get-suggestion
     Description: Name for the Get Suggestion Lambda function
 
+  GetUserActivitiesLambdaFunctionName:
+    Type: String
+    Default: get-user-activities
+    Description: Name for the Get User Activities Lambda function
+
   LogActivityZipKey:
     Type: String
     Default: log_activity.zip
@@ -40,6 +35,11 @@ Parameters:
     Type: String
     Default: get_suggestion.zip
     Description: S3 key for Get Suggestion Lambda deployment package
+
+  GetUserActivitiesZipKey:
+    Type: String
+    Default: get_activitieslogperuserid.zip
+    Description: S3 key for Get User Activities Lambda deployment package
 
   ApiGatewayName:
     Type: String
@@ -130,6 +130,44 @@ Resources:
         S3Bucket: !Ref LambdaCodeBucket
         S3Key: !Ref GetSuggestionZipKey
 
+  GetUserActivitiesLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: S3ReadPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub arn:aws:s3:::${S3BucketName}
+                  - !Sub arn:aws:s3:::${S3BucketName}/*
+
+  GetUserActivitiesLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref GetUserActivitiesLambdaFunctionName
+      Handler: get_activitieslogperuserid.lambda_handler
+      Role: !GetAtt GetUserActivitiesLambdaRole.Arn
+      Runtime: python3.9
+      Timeout: 15
+      Environment:
+        Variables:
+          S3_BUCKET: !Ref S3BucketName
+      Code:
+        S3Bucket: !Ref LambdaCodeBucket
+        S3Key: !Ref GetUserActivitiesZipKey
+
   LogActivityApi:
     Type: AWS::ApiGateway::RestApi
     Properties:
@@ -177,6 +215,27 @@ Resources:
           - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
           - { LambdaArn: !GetAtt GetSuggestionLambda.Arn }
 
+  GetUserActivitiesResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref LogActivityApi
+      ParentId: !GetAtt LogActivityApi.RootResourceId
+      PathPart: get-user-activities
+
+  GetUserActivitiesMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref LogActivityApi
+      ResourceId: !Ref GetUserActivitiesResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - { LambdaArn: !GetAtt GetUserActivitiesLambda.Arn }
+
   LambdaInvokePermissionLog:
     Type: AWS::Lambda::Permission
     Properties:
@@ -188,6 +247,13 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName: !GetAtt GetSuggestionLambda.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+
+  LambdaInvokePermissionGetUserActivities:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt GetUserActivitiesLambda.Arn
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
 

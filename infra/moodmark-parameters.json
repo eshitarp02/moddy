@@ -30,5 +30,15 @@
   {
     "ParameterKey": "GoogleAiApiKey",
     "ParameterValue": "your-google-ai-api-key"
-  }
+  },
+
+  {
+  "ParameterKey": "GetUserActivitiesLambdaFunctionName",
+  "ParameterValue": "get-user-activities"
+  },
+  {
+  "ParameterKey": "GetUserActivitiesZipKey",
+  "ParameterValue": "get_activitieslogperuserid.zip"
+ }
+
 ]
