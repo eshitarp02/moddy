@@ -23,7 +23,9 @@ def lambda_handler(event, context):
 
         # Clean user_id
         safe_user_id = "".join(c for c in user_id if c.isalnum() or c in ('-', '_'))
-        prefix = f"activities/{safe_user_id}/"
+        #prefix = f"activities/{safe_user_id}/"
+        prefix = f"{safe_user_id}/"
+
 
         # List all objects under user's folder
         response = s3.list_objects_v2(Bucket=BUCKET_NAME, Prefix=prefix)
