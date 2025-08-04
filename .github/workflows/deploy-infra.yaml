@@ -41,17 +41,19 @@ jobs:
         env:
           AWS_REGION: ${{ secrets.AWS_REGION }}
 
-      - name: Zip Lambda code
+      - name: Zip Lambda code packages
         run: |
           cd backend
           zip -r ../log_activity.zip log_activity.py
           zip -r ../get_suggestion.zip get_suggestion.py
+          zip -r ../get_activitieslogperuserid.zip get_activitieslogperuserid.py
           cd ..
 
       - name: Upload Lambda deployment packages to S3
         run: |
           aws s3 cp log_activity.zip s3://${{ steps.extract_bucket.outputs.bucket }}/log_activity.zip
           aws s3 cp get_suggestion.zip s3://${{ steps.extract_bucket.outputs.bucket }}/get_suggestion.zip
+          aws s3 cp get_activitieslogperuserid.zip s3://${{ steps.extract_bucket.outputs.bucket }}/get_activitieslogperuserid.zip
         env:
           AWS_REGION: ${{ secrets.AWS_REGION }}
 
