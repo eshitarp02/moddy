@@ -4,7 +4,8 @@ import os
 from botocore.exceptions import ClientError
 
 s3 = boto3.client('s3')
-BUCKET_NAME = os.environ.get('S3_BUCKET', 'hobbymark-activity-logs')
+BUCKET_NAME = os.environ.get('S3_BUCKET', 'moodmark-user-logs')
+
 
 CORS_HEADERS = {
     "Access-Control-Allow-Origin": "*"

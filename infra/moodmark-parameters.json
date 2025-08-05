@@ -37,8 +37,11 @@
   "ParameterValue": "get-user-activities"
   },
   {
-  "ParameterKey": "GetUserActivitiesZipKey",
-  "ParameterValue": "get_activitieslogperuserid.zip"
- }
-
+    "ParameterKey": "GetUserActivitiesZipKey",
+    "ParameterValue": "get_activitieslogperuserid.zip"
+  },
+  {
+    "ParameterKey": "DocumentDBPassword",
+    "ParameterValue": "yourStrongPassword"
+  }
 ]
