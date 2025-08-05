@@ -11,6 +11,9 @@ Parameters:
   PrivateSubnet1Cidr:
     Type: String
     Default: 10.0.2.0/24
+  PrivateSubnet2Cidr:
+    Type: String
+    Default: 10.0.3.0/24
   DocumentDBInstanceClass:
     Type: String
     Default: db.r5.large
@@ -100,12 +103,20 @@ Resources:
       CidrBlock: !Ref PrivateSubnet1Cidr
       AvailabilityZone: !Select [0, !GetAZs '']
 
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnet2Cidr
+      AvailabilityZone: !Select [1, !GetAZs '']
+
   DocumentDBSubnetGroup:
     Type: AWS::DocDB::DBSubnetGroup
     Properties:
       DBSubnetGroupDescription: MoodMark DocumentDB Subnet Group
       SubnetIds:
         - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
 
   DocumentDBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
