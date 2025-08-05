@@ -1,0 +1,82 @@
+import os
+import json
+import uuid
+import bcrypt
+from pymongo import MongoClient
+from botocore.exceptions import ClientError
+
+def get_db():
+    # Use environment variables for credentials and endpoint
+    uri = os.environ.get('DOCDB_URI')
+    username = os.environ.get('DOCDB_USER')
+    password = os.environ.get('DOCDB_PASS')
+    client = MongoClient(uri, username=username, password=password, tls=True, tlsAllowInvalidCertificates=True)
+    return client['moodmark']
+
+def lambda_handler(event, context):
+    try:
+        body = event.get('body')
+        if isinstance(body, str):
+            data = json.loads(body)
+        else:
+            data = body
+        action = data.get('action')
+        db = get_db()
+        users = db['users']
+
+        if action == 'register':
+            name = data['name']
+            email = data['email']
+            password = data.get('password')
+            provider = data.get('provider', 'email')
+            providerId = data.get('providerId')
+            if provider == 'email':
+                hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+                user = {
+                    "userId": str(uuid.uuid4()),
+                    "name": name,
+                    "email": email,
+                    "password": hashed,
+                    "provider": provider
+                }
+            else:
+                user = {
+                    "userId": str(uuid.uuid4()),
+                    "name": name,
+                    "email": email,
+                    "provider": provider,
+                    "providerId": providerId
+                }
+            users.insert_one(user)
+            return {
+                "statusCode": 201,
+                "body": json.dumps({"message": "User registered", "userId": user["userId"]})
+            }
+
+        elif action == 'login':
+            email = data['email']
+            password = data.get('password')
+            provider = data.get('provider', 'email')
+            providerId = data.get('providerId')
+            if provider == 'email':
+                user = users.find_one({"email": email, "provider": "email"})
+                if user and bcrypt.checkpw(password.encode(), user['password'].encode()):
+                    return {
+                        "statusCode": 200,
+                        "body": json.dumps({"userId": user["userId"], "name": user["name"], "email": user["email"]})
+                    }
+                else:
+                    return {"statusCode": 401, "body": json.dumps({"error": "Invalid credentials"})}
+            else:
+                user = users.find_one({"provider": provider, "providerId": providerId})
+                if user:
+                    return {
+                        "statusCode": 200,
+                        "body": json.dumps({"userId": user["userId"], "name": user["name"], "email": user["email"]})
+                    }
+                else:
+                    return {"statusCode": 401, "body": json.dumps({"error": "User not found"})}
+        else:
+            return {"statusCode": 400, "body": json.dumps({"error": "Invalid action"})}
+    except Exception as e:
+        return {"statusCode": 500, "body": json.dumps({"error": str(e)})}
