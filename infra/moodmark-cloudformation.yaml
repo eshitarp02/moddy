@@ -22,7 +22,7 @@ Parameters:
     Default: moodmark-docdb
   DocumentDBUser:
     Type: String
-    Default: admin
+    Default: moodmarkuser
   DocumentDBPassword:
     Type: String
     NoEcho: true

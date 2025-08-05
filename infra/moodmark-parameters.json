@@ -43,5 +43,9 @@
   {
     "ParameterKey": "DocumentDBPassword",
     "ParameterValue": "yourStrongPassword"
+  },
+  {
+    "ParameterKey": "DocumentDBUser",
+    "ParameterValue": "moodmarkuser"
   }
 ]
