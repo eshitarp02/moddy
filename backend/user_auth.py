@@ -6,11 +6,19 @@ from pymongo import MongoClient
 from botocore.exceptions import ClientError
 
 def get_db():
-    # Use environment variables for credentials and endpoint
     uri = os.environ.get('DOCDB_URI')
     username = os.environ.get('DOCDB_USER')
     password = os.environ.get('DOCDB_PASS')
-    client = MongoClient(uri, username=username, password=password, tls=True, tlsAllowInvalidCertificates=True)
+    if not uri or not username or not password:
+        raise Exception("Missing DocumentDB environment variables")
+    client = MongoClient(
+        uri,
+        username=username,
+        password=password,
+        tls=True,
+        tlsAllowInvalidCertificates=True,
+        serverSelectionTimeoutMS=5000  # 5 seconds timeout
+    )
     return client['moodmark']
 
 def lambda_handler(event, context):
