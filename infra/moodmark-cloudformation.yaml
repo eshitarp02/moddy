@@ -185,7 +185,7 @@ Resources:
           - !Ref DocumentDBSecurityGroup
       Environment:
         Variables:
-          DOCDB_URI: !Sub "mongodb://${DocumentDBCluster.Endpoint.Address}:27017/"
+          DOCDB_URI: !Sub "mongodb://${DocumentDBCluster.Endpoint}:27017/"
           DOCDB_USER: !Ref DocumentDBUser
           DOCDB_PASS: !Ref DocumentDBPassword
       Code:
