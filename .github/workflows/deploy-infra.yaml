@@ -44,7 +44,7 @@ jobs:
       - name: Package user_auth Lambda with dependencies
         run: |
           pip install -r backend/requirements.txt -t backend/package
-          copy backend/user_auth.py backend/package/
+          cp backend/user_auth.py backend/package/
           cd backend/package
           zip -r ../../user_auth.zip .
           cd ../..
