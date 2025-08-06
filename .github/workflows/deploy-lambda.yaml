@@ -45,6 +45,12 @@ jobs:
           pip install awscli
           aws s3 cp backend/user_auth.zip s3://$S3_BUCKET/user_auth.zip
 
+      - name: Upload requirements-installed.txt as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: requirements-installed
+          path: backend/package/requirements-installed.txt
+
 
 
 
