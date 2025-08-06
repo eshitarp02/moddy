@@ -1,6 +1,6 @@
-boto3
-requests
-pymongo
-bcrypt
-
 botocore
+boto3==1.28.57
+requests==2.31.0
+pymongo==4.13.0
+bcrypt==4.0.1
+botocore==1.31.57
