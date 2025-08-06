@@ -1,16 +1,10 @@
-      - name: Assume deployment role
-        id: assume_role
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          ROLE_ARN: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-        run: |
-          pip install awscli
-          CREDS=$(aws sts assume-role --role-arn "$ROLE_ARN" --role-session-name githubactions --region "$AWS_REGION" --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text)
-          export AWS_ACCESS_KEY_ID=$(echo $CREDS | awk '{print $1}')
-          export AWS_SECRET_ACCESS_KEY=$(echo $CREDS | awk '{print $2}')
-          export AWS_SESSION_TOKEN=$(echo $CREDS | awk '{print $3}')
+
+
+      - name: Configure AWS credentials (OIDC AssumeRole)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
 name: Build and Deploy Lambda
 on:
@@ -37,11 +31,10 @@ jobs:
 
 
 
+
+
       - name: Upload Lambda package to S3
         env:
-          AWS_ACCESS_KEY_ID: ${{ steps.assume_role.outputs.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.assume_role.outputs.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ steps.assume_role.outputs.AWS_SESSION_TOKEN }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
           S3_BUCKET: ${{ secrets.LAMBDA_S3_BUCKET }}
         run: |
@@ -49,11 +42,10 @@ jobs:
           aws s3 cp backend/user_auth.zip s3://$S3_BUCKET/user_auth.zip
 
 
+
+
       - name: Update Lambda function code
         env:
-          AWS_ACCESS_KEY_ID: ${{ steps.assume_role.outputs.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.assume_role.outputs.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ steps.assume_role.outputs.AWS_SESSION_TOKEN }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
           LAMBDA_FUNCTION_NAME: ${{ secrets.LAMBDA_FUNCTION_AUTH }}
           S3_BUCKET: ${{ secrets.LAMBDA_S3_BUCKET }}
