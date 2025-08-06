@@ -2,3 +2,5 @@ boto3
 requests
 pymongo
 bcrypt
+
+botocore
