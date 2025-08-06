@@ -1,7 +1,7 @@
 import os
 import json
 import uuid
-import bcrypt
+from passlib.hash import pbkdf2_sha256
 from pymongo import MongoClient
 from botocore.exceptions import ClientError
 
@@ -46,7 +46,7 @@ def lambda_handler(event, context):
             }
             if provider == 'email':
                 if password:
-                    user["password"] = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+                    user["password"] = pbkdf2_sha256.hash(password)
             else:
                 if providerId:
                     user["providerId"] = providerId
@@ -63,7 +63,7 @@ def lambda_handler(event, context):
             providerId = data.get('providerId') if 'providerId' in data else None
             if provider == 'email':
                 user = users.find_one({"email": email, "provider": "email"})
-                if user and password and bcrypt.checkpw(password.encode(), user['password'].encode()):
+                if user and password and pbkdf2_sha256.verify(password, user['password']):
                     return {
                         "statusCode": 200,
                         "body": json.dumps({"userId": user["userId"], "name": user["name"], "email": user["email"]})
