@@ -13,6 +13,9 @@ on:
       - feature-1
   workflow_dispatch:
 jobs:
+      - name: Show installed packages in Lambda build
+        run: |
+          if [ -f backend/package/requirements-installed.txt ]; then cat backend/package/requirements-installed.txt; else echo 'requirements-installed.txt not found'; fi
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
