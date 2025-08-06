@@ -1,0 +1,43 @@
+name: Build and Deploy Lambda
+on:
+  push:
+    branches:
+      - feature-1
+  workflow_dispatch:
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Build Lambda package in Docker
+        run: |
+          docker pull public.ecr.aws/lambda/python:3.9
+          docker run --rm -v "$PWD/backend":/var/task -w /var/task public.ecr.aws/lambda/python:3.9 bash -c "pip install --no-binary :all: -r requirements.txt -t ./package && cp user_auth.py ./package/ && cd package && zip -r ../user_auth.zip ."
+
+      - name: Upload Lambda package to S3
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          S3_BUCKET: ${{ secrets.LAMBDA_S3_BUCKET }}
+        run: |
+          pip install awscli
+          aws s3 cp backend/user_auth.zip s3://$S3_BUCKET/user_auth.zip
+
+      - name: Update Lambda function code
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          LAMBDA_FUNCTION_NAME: ${{ secrets.LAMBDA_FUNCTION_NAME }}
+          S3_BUCKET: ${{ secrets.LAMBDA_S3_BUCKET }}
+        run: |
+          pip install awscli
+          aws lambda update-function-code --function-name $LAMBDA_FUNCTION_NAME --s3-bucket $S3_BUCKET --s3-key user_auth.zip --region $AWS_REGION
