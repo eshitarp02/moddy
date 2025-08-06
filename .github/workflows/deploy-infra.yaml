@@ -14,6 +14,8 @@ permissions:
   contents: read
 
 jobs:
+      - name: List files for debug
+        run: ls -l backend user_auth.zip
   deploy:
     runs-on: ubuntu-latest
     steps:
@@ -55,7 +57,7 @@ jobs:
 
       - name: Upload Lambda deployment packages to S3
         run: |
-          aws s3 cp user_auth.zip s3://${{ steps.extract_bucket.outputs.bucket }}/user_auth.zip
+          aws s3 cp backend/user_auth.zip s3://${{ steps.extract_bucket.outputs.bucket }}/user_auth.zip
           aws s3 cp log_activity.zip s3://${{ steps.extract_bucket.outputs.bucket }}/log_activity.zip
           aws s3 cp get_suggestion.zip s3://${{ steps.extract_bucket.outputs.bucket }}/get_suggestion.zip
           aws s3 cp get_activitieslogperuserid.zip s3://${{ steps.extract_bucket.outputs.bucket }}/get_activitieslogperuserid.zip
