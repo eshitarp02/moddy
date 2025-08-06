@@ -1,32 +1,3 @@
-import os
-import json
-import uuid
-from passlib.hash import pbkdf2_sha256
-from pymongo import MongoClient
-from botocore.exceptions import ClientError
-
-def get_db():
-    uri = os.environ.get('DOCDB_URI')
-    username = os.environ.get('DOCDB_USER')
-    password = os.environ.get('DOCDB_PASS')
-    if not uri or not username or not password:
-        raise Exception("Missing DocumentDB environment variables")
-    client = MongoClient(
-        uri,
-        username=username,
-        password=password,
-        tls=True,
-        tlsAllowInvalidCertificates=True,
-        serverSelectionTimeoutMS=5000  # 5 seconds timeout
-    )
-    return client['moodmark']
-
-def lambda_handler(event, context):
-    try:
-        body = event.get('body')
-        if isinstance(body, str):
-            data = json.loads(body)
-        else:
 
 import os
 import json
