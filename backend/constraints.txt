@@ -1,7 +1,13 @@
 setuptools==65.5.0
 setuptools-scm==6.4.2
 importlib-metadata==4.8.3
-hatchling==1.24.0
-packaging==25.0
+pymongo==4.3.3
+bcrypt==3.2.2
+hatchling==1.21.0
+pluggy==1.0.0
+tomli==2.0.1
+packaging==21.3
+typing-extensions==4.7.1
+dnspython==2.3.0
 pymongo==4.3.3
 bcrypt==3.2.2

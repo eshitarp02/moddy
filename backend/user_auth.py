@@ -33,28 +33,23 @@ def lambda_handler(event, context):
         users = db['users']
 
         if action == 'register':
-            name = data['name']
-            email = data['email']
+            name = data.get('name')
+            email = data.get('email')
             password = data.get('password')
             provider = data.get('provider', 'email')
-            providerId = data.get('providerId')
+            providerId = data.get('providerId') if 'providerId' in data else None
+            user = {
+                "userId": str(uuid.uuid4()),
+                "name": name,
+                "email": email,
+                "provider": provider
+            }
             if provider == 'email':
-                hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-                user = {
-                    "userId": str(uuid.uuid4()),
-                    "name": name,
-                    "email": email,
-                    "password": hashed,
-                    "provider": provider
-                }
+                if password:
+                    user["password"] = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
             else:
-                user = {
-                    "userId": str(uuid.uuid4()),
-                    "name": name,
-                    "email": email,
-                    "provider": provider,
-                    "providerId": providerId
-                }
+                if providerId:
+                    user["providerId"] = providerId
             users.insert_one(user)
             return {
                 "statusCode": 201,
@@ -62,13 +57,13 @@ def lambda_handler(event, context):
             }
 
         elif action == 'login':
-            email = data['email']
+            email = data.get('email')
             password = data.get('password')
             provider = data.get('provider', 'email')
-            providerId = data.get('providerId')
+            providerId = data.get('providerId') if 'providerId' in data else None
             if provider == 'email':
                 user = users.find_one({"email": email, "provider": "email"})
-                if user and bcrypt.checkpw(password.encode(), user['password'].encode()):
+                if user and password and bcrypt.checkpw(password.encode(), user['password'].encode()):
                     return {
                         "statusCode": 200,
                         "body": json.dumps({"userId": user["userId"], "name": user["name"], "email": user["email"]})
@@ -76,7 +71,10 @@ def lambda_handler(event, context):
                 else:
                     return {"statusCode": 401, "body": json.dumps({"error": "Invalid credentials"})}
             else:
-                user = users.find_one({"provider": provider, "providerId": providerId})
+                query = {"provider": provider}
+                if providerId:
+                    query["providerId"] = providerId
+                user = users.find_one(query)
                 if user:
                     return {
                         "statusCode": 200,
