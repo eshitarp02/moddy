@@ -24,6 +24,10 @@ jobs:
         with:
           python-version: '3.9'
 
+      - name: Clean backend build artifacts
+        run: |
+          rm -rf backend/package backend/user_auth.zip
+
       - name: Build Lambda package in Docker
         run: |
           docker pull public.ecr.aws/lambda/python:3.9
