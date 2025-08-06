@@ -47,7 +47,7 @@ jobs:
       - name: Build user_auth Lambda package in Amazon Linux 2 (Docker)
         run: |
           docker run --rm -v ${{ github.workspace }}/backend:/var/task -w /var/task public.ecr.aws/sam/build-python3.9 \
-            /bin/bash -c "yum install -y gcc python3-devel make openssl-devel libffi-devel && pip install --upgrade pip setuptools==65.5.0 wheel==0.40.0 && pip cache purge && pip install pymongo==4.13.0 bcrypt==4.0.1 -t /var/task/package && pip install --no-binary :all: boto3==1.28.57 requests==2.31.0 botocore==1.31.57 -t /var/task/package && cp /var/task/user_auth.py /var/task/package/ && cd /var/task/package && zip -r /var/task/user_auth.zip ."
+            /bin/bash -c "yum install -y gcc python3-devel make openssl-devel libffi-devel && pip install --upgrade pip setuptools==65.5.0 wheel==0.40.0 && pip cache purge && pip install pymongo==4.13.0 bcrypt==4.0.1 -t /var/task/package && pip install --prefer-binary boto3==1.28.57 requests==2.31.0 botocore==1.31.57 -t /var/task/package && cp /var/task/user_auth.py /var/task/package/ && cd /var/task/package && zip -r /var/task/user_auth.zip ."
       - name: Zip other Lambda code packages
         run: |
           cd backend
