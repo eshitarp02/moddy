@@ -27,7 +27,37 @@ def lambda_handler(event, context):
         if isinstance(body, str):
             data = json.loads(body)
         else:
+
+import os
+import json
+import uuid
+from passlib.hash import pbkdf2_sha256
+from pymongo import MongoClient
+
+def get_db():
+    uri = os.environ.get('DOCDB_URI')
+    username = os.environ.get('DOCDB_USER')
+    password = os.environ.get('DOCDB_PASS')
+    if not uri or not username or not password:
+        raise Exception("Missing DocumentDB environment variables")
+    client = MongoClient(
+        uri,
+        username=username,
+        password=password,
+        tls=True,
+        tlsAllowInvalidCertificates=True,
+        serverSelectionTimeoutMS=5000  # 5 seconds timeout
+    )
+    return client['moodmark']
+
+def lambda_handler(event, context):
+    try:
+        body = event.get('body')
+        if isinstance(body, str):
+            data = json.loads(body)
+        else:
             data = body
+
         action = data.get('action')
         db = get_db()
         users = db['users']
@@ -37,19 +67,23 @@ def lambda_handler(event, context):
             email = data.get('email')
             password = data.get('password')
             provider = data.get('provider', 'email')
-            providerId = data.get('providerId') if 'providerId' in data else None
+            providerId = data.get('providerId')
+
+            if provider == 'email' and not password:
+                return {"statusCode": 400, "body": json.dumps({"error": "Password required for email registration"})}
+
             user = {
                 "userId": str(uuid.uuid4()),
                 "name": name,
                 "email": email,
                 "provider": provider
             }
+
             if provider == 'email':
-                if password:
-                    user["password"] = pbkdf2_sha256.hash(password)
-            else:
-                if providerId:
-                    user["providerId"] = providerId
+                user["password"] = pbkdf2_sha256.hash(password)
+            elif providerId:
+                user["providerId"] = providerId
+
             users.insert_one(user)
             return {
                 "statusCode": 201,
@@ -60,7 +94,8 @@ def lambda_handler(event, context):
             email = data.get('email')
             password = data.get('password')
             provider = data.get('provider', 'email')
-            providerId = data.get('providerId') if 'providerId' in data else None
+            providerId = data.get('providerId')
+
             if provider == 'email':
                 user = users.find_one({"email": email, "provider": "email"})
                 if user and password and pbkdf2_sha256.verify(password, user['password']):
@@ -84,5 +119,7 @@ def lambda_handler(event, context):
                     return {"statusCode": 401, "body": json.dumps({"error": "User not found"})}
         else:
             return {"statusCode": 400, "body": json.dumps({"error": "Invalid action"})}
+
     except Exception as e:
+        print(f"Error: {str(e)}")
         return {"statusCode": 500, "body": json.dumps({"error": str(e)})}
