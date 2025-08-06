@@ -10,4 +10,3 @@ packaging==21.3
 typing-extensions==4.7.1
 dnspython==2.3.0
 pymongo==4.3.3
-bcrypt==3.2.2
