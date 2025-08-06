@@ -1,0 +1,5 @@
+setuptools==65.5.0
+setuptools-scm==6.4.2
+importlib-metadata==4.8.3
+hatchling==1.24.0
+packaging==25.0
