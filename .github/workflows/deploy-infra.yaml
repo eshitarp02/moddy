@@ -27,7 +27,7 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
       # ...existing steps...
       - name: List files for debug
-        run: ls -l backend user_auth.zip
+        run: ls -l backend
       - name: Checkout code
         uses: actions/checkout@v4
 
