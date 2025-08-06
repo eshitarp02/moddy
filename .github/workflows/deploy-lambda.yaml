@@ -1,3 +1,17 @@
+      - name: Assume deployment role
+        id: assume_role
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          ROLE_ARN: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+        run: |
+          pip install awscli
+          CREDS=$(aws sts assume-role --role-arn "$ROLE_ARN" --role-session-name githubactions --region "$AWS_REGION" --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text)
+          export AWS_ACCESS_KEY_ID=$(echo $CREDS | awk '{print $1}')
+          export AWS_SECRET_ACCESS_KEY=$(echo $CREDS | awk '{print $2}')
+          export AWS_SESSION_TOKEN=$(echo $CREDS | awk '{print $3}')
+
 name: Build and Deploy Lambda
 on:
   push:
@@ -21,22 +35,27 @@ jobs:
           docker pull public.ecr.aws/lambda/python:3.9
           docker run --rm -v "$PWD/backend":/var/task -w /var/task public.ecr.aws/lambda/python:3.9 bash -c "pip install --no-binary :all: -r requirements.txt -t ./package && cp user_auth.py ./package/ && cd package && zip -r ../user_auth.zip ."
 
+
+
       - name: Upload Lambda package to S3
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ steps.assume_role.outputs.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.assume_role.outputs.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ steps.assume_role.outputs.AWS_SESSION_TOKEN }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
           S3_BUCKET: ${{ secrets.LAMBDA_S3_BUCKET }}
         run: |
           pip install awscli
           aws s3 cp backend/user_auth.zip s3://$S3_BUCKET/user_auth.zip
 
+
       - name: Update Lambda function code
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ steps.assume_role.outputs.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.assume_role.outputs.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ steps.assume_role.outputs.AWS_SESSION_TOKEN }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
-          LAMBDA_FUNCTION_NAME: ${{ secrets.LAMBDA_FUNCTION_NAME }}
+          LAMBDA_FUNCTION_NAME: ${{ secrets.LAMBDA_FUNCTION_AUTH }}
           S3_BUCKET: ${{ secrets.LAMBDA_S3_BUCKET }}
         run: |
           pip install awscli
