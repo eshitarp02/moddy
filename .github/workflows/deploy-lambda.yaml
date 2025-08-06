@@ -31,7 +31,7 @@ jobs:
       - name: Build Lambda package in Docker
         run: |
           docker pull public.ecr.aws/lambda/python:3.9
-          docker run --rm -v "$PWD/backend":/var/task -w /var/task public.ecr.aws/lambda/python:3.9 bash -c "find /var/task -name '*bcrypt*' -delete && find /var/task -name '*.so' -delete && find /var/task -name '*.pyc' -delete && pip install --no-binary :all: -r requirements.txt -t ./package && cp user_auth.py ./package/ && cd package && zip -r ../user_auth.zip ."
+          docker run --rm -v "$PWD/backend":/var/task -w /var/task public.ecr.aws/lambda/python:3.9 bash -c "find /var/task -name '*bcrypt*' -delete && find /var/task -name '*.so' -delete && find /var/task -name '*.pyc' -delete && pip install --no-binary :all: -r requirements.txt -t ./package && pip freeze --local > /var/task/package/requirements-installed.txt && cp user_auth.py ./package/ && cd package && zip -r ../user_auth.zip ."
 
 
 
