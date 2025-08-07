@@ -1,9 +1,9 @@
-
 import os
 import json
 import uuid
-from passlib.hash import pbkdf2_sha256
+import bcrypt
 from pymongo import MongoClient
+from botocore.exceptions import ClientError
 
 def get_db():
     uri = os.environ.get('DOCDB_URI')
@@ -28,33 +28,41 @@ def lambda_handler(event, context):
             data = json.loads(body)
         else:
             data = body
-
         action = data.get('action')
         db = get_db()
         users = db['users']
 
         if action == 'register':
-            name = data.get('name')
-            email = data.get('email')
+            name = data['name']
+            email = data['email'].strip().lower()
             password = data.get('password')
             provider = data.get('provider', 'email')
             providerId = data.get('providerId')
-
-            if provider == 'email' and not password:
-                return {"statusCode": 400, "body": json.dumps({"error": "Password required for email registration"})}
-
-            user = {
-                "userId": str(uuid.uuid4()),
-                "name": name,
-                "email": email,
-                "provider": provider
-            }
-
+            # Check if email already exists for this provider (case-insensitive)
+            existing = users.find_one({"email": email, "provider": provider})
+            if existing:
+                return {
+                    "statusCode": 409,
+                    "body": json.dumps({"error": "User with this email already exists"})
+                }
+            
             if provider == 'email':
-                user["password"] = pbkdf2_sha256.hash(password)
-            elif providerId:
-                user["providerId"] = providerId
-
+                hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+                user = {
+                    "userId": str(uuid.uuid4()),
+                    "name": name,
+                    "email": email,
+                    "password": hashed,
+                    "provider": provider
+                }
+            else:
+                user = {
+                    "userId": str(uuid.uuid4()),
+                    "name": name,
+                    "email": email,
+                    "provider": provider,
+                    "providerId": providerId
+                }
             users.insert_one(user)
             return {
                 "statusCode": 201,
@@ -62,14 +70,13 @@ def lambda_handler(event, context):
             }
 
         elif action == 'login':
-            email = data.get('email')
+            email = data['email']
             password = data.get('password')
             provider = data.get('provider', 'email')
             providerId = data.get('providerId')
-
             if provider == 'email':
                 user = users.find_one({"email": email, "provider": "email"})
-                if user and password and pbkdf2_sha256.verify(password, user['password']):
+                if user and bcrypt.checkpw(password.encode(), user['password'].encode()):
                     return {
                         "statusCode": 200,
                         "body": json.dumps({"userId": user["userId"], "name": user["name"], "email": user["email"]})
@@ -77,10 +84,7 @@ def lambda_handler(event, context):
                 else:
                     return {"statusCode": 401, "body": json.dumps({"error": "Invalid credentials"})}
             else:
-                query = {"provider": provider}
-                if providerId:
-                    query["providerId"] = providerId
-                user = users.find_one(query)
+                user = users.find_one({"provider": provider, "providerId": providerId})
                 if user:
                     return {
                         "statusCode": 200,
@@ -90,7 +94,5 @@ def lambda_handler(event, context):
                     return {"statusCode": 401, "body": json.dumps({"error": "User not found"})}
         else:
             return {"statusCode": 400, "body": json.dumps({"error": "Invalid action"})}
-
     except Exception as e:
-        print(f"Error: {str(e)}")
         return {"statusCode": 500, "body": json.dumps({"error": str(e)})}
