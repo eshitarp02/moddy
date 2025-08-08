@@ -2,6 +2,19 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: MoodMark - S3, Lambda, API Gateway (MVP)
 
 Parameters:
+  DocumentDBUser:
+    Type: String
+    Default: moodmarkuser
+    Description: DocumentDB username
+
+  DocumentDBPassword:
+    Type: String
+    NoEcho: true
+    Description: DocumentDB password
+
+  LambdaCodeBucket:
+    Type: String
+    Description: S3 bucket containing Lambda deployment packages
   VpcCidr:
     Type: String
     Default: 10.0.0.0/16
