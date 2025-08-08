@@ -67,7 +67,6 @@ jobs:
       - name: Zip other Lambda code packages
         run: |
           cd backend
-          zip -r ../log_activity.zip log_activity.py
           zip -r ../get_suggestion.zip get_suggestion.py
           zip -r ../get_activitieslogperuserid.zip get_activitieslogperuserid.py
           cd ..
@@ -75,7 +74,6 @@ jobs:
       - name: Upload Lambda deployment packages to S3
         run: |
           aws s3 cp backend/user_auth.zip s3://${{ steps.extract_bucket.outputs.bucket }}/user_auth.zip
-          aws s3 cp log_activity.zip s3://${{ steps.extract_bucket.outputs.bucket }}/log_activity.zip
           aws s3 cp get_suggestion.zip s3://${{ steps.extract_bucket.outputs.bucket }}/get_suggestion.zip
           aws s3 cp get_activitieslogperuserid.zip s3://${{ steps.extract_bucket.outputs.bucket }}/get_activitieslogperuserid.zip
           aws s3 cp activity_api.zip s3://${{ steps.extract_bucket.outputs.bucket }}/activity_api.zip
