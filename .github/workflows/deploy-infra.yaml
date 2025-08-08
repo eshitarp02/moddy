@@ -67,9 +67,9 @@ jobs:
           aws s3 cp log_activity.zip s3://${{ steps.extract_bucket.outputs.bucket }}/log_activity.zip
           aws s3 cp get_suggestion.zip s3://${{ steps.extract_bucket.outputs.bucket }}/get_suggestion.zip
           aws s3 cp get_activitieslogperuserid.zip s3://${{ steps.extract_bucket.outputs.bucket }}/get_activitieslogperuserid.zip
+          aws s3 cp activity_api.zip s3://${{ steps.extract_bucket.outputs.bucket }}/activity_api.zip
         env:
           AWS_REGION: ${{ secrets.AWS_REGION }}
-          aws s3 cp activity_api.zip s3://${{ steps.extract_bucket.outputs.bucket }}/activity_api.zip
 
       - name: Deploy CloudFormation stack
         run: |
