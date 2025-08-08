@@ -60,11 +60,6 @@ jobs:
           zip -r ../get_suggestion.zip get_suggestion.py
           zip -r ../get_activitieslogperuserid.zip get_activitieslogperuserid.py
           cd ..
-      - name: Zip activity_api Lambda package
-        run: |
-          cd backend
-          zip -r ../activity_api.zip activity_api.py
-          cd ..
 
       - name: Upload Lambda deployment packages to S3
         run: |
