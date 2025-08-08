@@ -2,6 +2,20 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: MoodMark - S3, Lambda, API Gateway (MVP)
 
 Parameters:
+  GetSuggestionZipKey:
+    Type: String
+    Default: get_suggestion.zip
+    Description: S3 key for Get Suggestion Lambda deployment package
+
+  S3BucketName:
+    Type: String
+    Default: moodmark-user-logs
+    Description: S3 bucket for storing user activity logs
+
+  GetSuggestionLambdaFunctionName:
+    Type: String
+    Default: get-suggestion
+    Description: Name for the Get Suggestion Lambda function
   DocumentDBUser:
     Type: String
     Default: moodmarkuser
