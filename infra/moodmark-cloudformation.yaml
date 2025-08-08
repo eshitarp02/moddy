@@ -3,8 +3,9 @@ Description: MoodMark - S3, Lambda, API Gateway (MVP)
 
 Parameters:
   VpcCidr:
-    Default: get_activitieslogperuserid.zip
-    Description: S3 key for Get User Activities Lambda deployment package
+    Type: String
+    Default: 10.0.0.0/16
+    Description: VPC CIDR block
 
   ApiGatewayName:
     Type: String
