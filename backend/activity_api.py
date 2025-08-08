@@ -36,8 +36,8 @@ def lambda_handler(event, context):
     else:
         data = body or {}
 
-    # POST /log-activity
-    if method == 'POST' and path.endswith('/log-activity'):
+    # POST /log-activity or /activity-log
+    if method == 'POST' and (path.endswith('/log-activity') or path.endswith('/activity-log')):
         userId = data.get('userId')
         activityType = data.get('activityType')
         description = data.get('description')
@@ -58,8 +58,8 @@ def lambda_handler(event, context):
         activities.insert_one(activity)
         return {"statusCode": 201, "body": json.dumps({"message": "Activity logged", "activityId": activity["activityId"]})}
 
-    # PUT /log-activity
-    elif method == 'PUT' and path.endswith('/log-activity'):
+    # PUT /log-activity or /activity-log
+    elif method == 'PUT' and (path.endswith('/log-activity') or path.endswith('/activity-log')):
         activityId = data.get('activityId')
         if not activityId:
             return {"statusCode": 400, "body": json.dumps({"error": "Missing activityId"})}
