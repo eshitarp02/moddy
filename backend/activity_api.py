@@ -39,14 +39,19 @@ def lambda_handler(event, context):
     # POST /log-activity
     if method == 'POST' and path.endswith('/log-activity'):
         userId = data.get('userId')
+        activityType = data.get('activityType')
+        description = data.get('description')
         if not userId or not users.find_one({'userId': userId}):
             return {"statusCode": 400, "body": json.dumps({"error": "Invalid or missing userId"})}
+        if not activityType or not description:
+            return {"statusCode": 400, "body": json.dumps({"error": "Missing mandatory field: activityType or description"})}
         activity = {
             "activityId": str(uuid.uuid4()),
             "userId": userId,
-            "activityType": data.get('activityType', ''),
-            "details": data.get('details', ''),
-            "mood": data.get('mood', ''),
+            "activityType": activityType,
+            "description": description,
+            "bookmark": data.get('bookmark'),
+            "mood": data.get('mood'),
             "timestamp": data.get('timestamp', datetime.utcnow().isoformat()),
             "lastUpdated": datetime.utcnow().isoformat()
         }
