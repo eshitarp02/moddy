@@ -55,6 +55,11 @@ jobs:
           zip -r ../get_suggestion.zip get_suggestion.py
           zip -r ../get_activitieslogperuserid.zip get_activitieslogperuserid.py
           cd ..
+      - name: Zip activity_api Lambda package
+        run: |
+          cd backend
+          zip -r ../activity_api.zip activity_api.py
+          cd ..
 
       - name: Upload Lambda deployment packages to S3
         run: |
@@ -64,6 +69,7 @@ jobs:
           aws s3 cp get_activitieslogperuserid.zip s3://${{ steps.extract_bucket.outputs.bucket }}/get_activitieslogperuserid.zip
         env:
           AWS_REGION: ${{ secrets.AWS_REGION }}
+          aws s3 cp activity_api.zip s3://${{ steps.extract_bucket.outputs.bucket }}/activity_api.zip
 
       - name: Deploy CloudFormation stack
         run: |
