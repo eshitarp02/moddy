@@ -14,6 +14,7 @@ COLLECTION_NAME = os.environ.get('COLLECTION_NAME', 'activities')
 
 def lambda_handler(event, context):
     try:
+        print("Lambda handler invoked for /activity-log endpoint")
         user_id = event.get('queryStringParameters', {}).get('user_id')
         if not user_id:
             return {
