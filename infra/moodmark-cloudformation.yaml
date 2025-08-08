@@ -7,6 +7,11 @@ Parameters:
     Default: 10.0.3.0/24
     Description: CIDR block for the second private subnet
 
+  PublicSubnet1Cidr:
+    Type: String
+    Default: 10.0.1.0/24
+    Description: CIDR block for the public subnet
+
   DocumentDBClusterName:
     Type: String
     Default: moodmark-docdb-cluster
