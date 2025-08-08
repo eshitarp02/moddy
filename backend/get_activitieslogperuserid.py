@@ -1,20 +1,20 @@
 import json
-import boto3
 import os
-from botocore.exceptions import ClientError
-
-s3 = boto3.client('s3')
-BUCKET_NAME = os.environ.get('S3_BUCKET', 'moodmark-user-logs')
-
+from pymongo import MongoClient
+from pymongo.errors import PyMongoError
 
 CORS_HEADERS = {
     "Access-Control-Allow-Origin": "*"
 }
 
+# DocumentDB connection details
+MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://localhost:27017')
+DB_NAME = os.environ.get('DB_NAME', 'moodmark')
+COLLECTION_NAME = os.environ.get('COLLECTION_NAME', 'activities')
+
 def lambda_handler(event, context):
     try:
         user_id = event.get('queryStringParameters', {}).get('user_id')
-
         if not user_id:
             return {
                 "statusCode": 400,
@@ -22,30 +22,24 @@ def lambda_handler(event, context):
                 "body": json.dumps({"error": "Missing 'user_id' in query parameters."})
             }
 
-        # Clean user_id
-        safe_user_id = "".join(c for c in user_id if c.isalnum() or c in ('-', '_'))
-        #prefix = f"activities/{safe_user_id}/"
-        prefix = f"{safe_user_id}/"
+        # Connect to DocumentDB
+        client = MongoClient(MONGODB_URI)
+        db = client[DB_NAME]
+        collection = db[COLLECTION_NAME]
 
+        # Fetch activities for the user
+        activities_cursor = collection.find({"userId": user_id})
+        activities = []
+        for activity in activities_cursor:
+            activity.pop('_id', None)  # Remove MongoDB internal ID
+            activities.append(activity)
 
-        # List all objects under user's folder
-        response = s3.list_objects_v2(Bucket=BUCKET_NAME, Prefix=prefix)
-
-        if 'Contents' not in response:
+        if not activities:
             return {
                 "statusCode": 404,
                 "headers": CORS_HEADERS,
                 "body": json.dumps({"message": "No activity logs found for user."})
             }
-
-        activities = []
-
-        for obj in response['Contents']:
-            key = obj['Key']
-            if key.endswith('.json'):
-                file_obj = s3.get_object(Bucket=BUCKET_NAME, Key=key)
-                content = file_obj['Body'].read().decode('utf-8')
-                activities.append(json.loads(content))
 
         return {
             "statusCode": 200,
@@ -53,13 +47,12 @@ def lambda_handler(event, context):
             "body": json.dumps({"activities": activities})
         }
 
-    except ClientError as e:
+    except PyMongoError as e:
         return {
             "statusCode": 500,
             "headers": CORS_HEADERS,
-            "body": json.dumps({"error": "S3 access error.", "details": str(e)})
+            "body": json.dumps({"error": "Database access error.", "details": str(e)})
         }
-
     except Exception as e:
         return {
             "statusCode": 500,
