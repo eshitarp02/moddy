@@ -2,6 +2,15 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: MoodMark - S3, Lambda, API Gateway (MVP)
 
 Parameters:
+  LogActivityLambdaFunctionName:
+    Type: String
+    Default: log-activity
+    Description: Name for the Log Activity Lambda function
+
+  LogActivityZipKey:
+    Type: String
+    Default: log_activity.zip
+    Description: S3 key for Log Activity Lambda deployment package
   GetSuggestionZipKey:
     Type: String
     Default: get_suggestion.zip
