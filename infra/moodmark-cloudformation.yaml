@@ -2,6 +2,39 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: MoodMark - S3, Lambda, API Gateway (MVP)
 
 Parameters:
+  PrivateSubnet2Cidr:
+    Type: String
+    Default: 10.0.3.0/24
+    Description: CIDR block for the second private subnet
+
+  DocumentDBClusterName:
+    Type: String
+    Default: moodmark-docdb-cluster
+    Description: Name for the DocumentDB cluster
+
+  DocumentDBInstanceClass:
+    Type: String
+    Default: db.t3.medium
+    Description: Instance class for DocumentDB
+
+  UserAuthZipKey:
+    Type: String
+    Default: user_auth.zip
+    Description: S3 key for User Auth Lambda deployment package
+
+  GetUserActivitiesLambdaFunctionName:
+    Type: String
+    Default: get-user-activities
+    Description: Name of the Lambda function to fetch user activities
+
+  GetUserActivitiesZipKey:
+    Type: String
+    Default: get_activitieslogperuserid.zip
+    Description: S3 key for get-user-activities Lambda deployment package
+  PrivateSubnet1Cidr:
+    Type: String
+    Default: 10.0.2.0/24
+    Description: CIDR block for the private subnet
   LogActivityLambdaFunctionName:
     Type: String
     Default: log-activity

@@ -31,10 +31,25 @@
     "ParameterKey": "GoogleAiApiKey",
     "ParameterValue": "your-google-ai-api-key"
   },
-
   {
-  "ParameterKey": "GetUserActivitiesLambdaFunctionName",
-  "ParameterValue": "get-user-activities"
+    "ParameterKey": "PrivateSubnet2Cidr",
+    "ParameterValue": "10.0.3.0/24"
+  },
+  {
+    "ParameterKey": "DocumentDBClusterName",
+    "ParameterValue": "moodmark-docdb-cluster"
+  },
+  {
+    "ParameterKey": "DocumentDBInstanceClass",
+    "ParameterValue": "db.t3.medium"
+  },
+  {
+    "ParameterKey": "UserAuthZipKey",
+    "ParameterValue": "user_auth.zip"
+  },
+  {
+    "ParameterKey": "GetUserActivitiesLambdaFunctionName",
+    "ParameterValue": "get-user-activities"
   },
   {
     "ParameterKey": "GetUserActivitiesZipKey",
