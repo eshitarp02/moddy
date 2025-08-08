@@ -54,6 +54,10 @@ jobs:
           docker run --rm -v ${{ github.workspace }}/backend:/var/task -w /var/task public.ecr.aws/sam/build-python3.9 \
             /bin/bash -c "yum install -y gcc python3-devel make openssl-devel libffi-devel python3-pip git patch && rm -rf /var/task/activity_package && find /var/task -name '*bcrypt*' -delete && find /var/task -name '*.so' -delete && find /var/task -name '*.pyc' -delete && pip install --upgrade --no-cache-dir -c /var/task/constraints.txt pip==23.0.1 setuptools==65.5.0 wheel==0.40.0 importlib-metadata==4.8.3 setuptools-scm==6.4.2 hatchling==1.21.0 pluggy==1.0.0 tomli==2.0.1 packaging==21.3 typing-extensions==4.7.1 dnspython==2.3.0 -v && pip cache purge && PIP_NO_BUILD_ISOLATION=1 pip install --no-cache-dir -c /var/task/constraints.txt pymongo==4.3.3 -t /var/task/activity_package -v && PIP_NO_BUILD_ISOLATION=1 pip install --prefer-binary --no-cache-dir -c /var/task/constraints.txt boto3==1.28.57 requests==2.31.0 botocore==1.31.57 -t /var/task/activity_package -v && cp /var/task/activity_api.py /var/task/activity_package/ && cd /var/task/activity_package && zip -r /var/task/activity_api.zip ."
 
+      - name: List files after activity_api build
+        run: |
+          ls -l
+
       - name: Verify activity_api.zip exists
         run: |
           if [ ! -f activity_api.zip ]; then
