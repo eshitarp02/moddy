@@ -36,13 +36,18 @@ def lambda_handler(event, context):
         activities = db['activities']
         users = db['users']
 
+        logger.info(f"Incoming event: {json.dumps(event)}")
+
         body = event.get('body')
         if isinstance(body, str):
             data = json.loads(body)
         else:
             data = body
 
+        logger.info(f"Parsed data: {json.dumps(data)}")
+
         valid, msg = validate_activity(data)
+        logger.info(f"Validation result: {valid}, {msg}")
         if not valid:
             logger.warning(f"Validation failed: {msg}")
             return {
@@ -51,8 +56,9 @@ def lambda_handler(event, context):
             }
 
         user_id = str(data['user_id'])
-        # Check if user exists in users collection
-        if not users.find_one({'userId': user_id}):
+        user_doc = users.find_one({'userId': user_id})
+        logger.info(f"User lookup for userId={user_id}: {user_doc}")
+        if not user_doc:
             logger.warning(f"User not found: {user_id}")
             return {
                 "statusCode": 400,
