@@ -198,7 +198,7 @@ Resources:
           - !Ref DocumentDBSecurityGroup
       Environment:
         Variables:
-          DOCDB_URI: !Sub "mongodb://${DocumentDBCluster.Endpoint}:27017/"
+          DOCDB_URI: !Sub "mongodb://${DocumentDBCluster.Endpoint}:27017/?retryWrites=false"
           DOCDB_USER: !Ref DocumentDBUser
           DOCDB_PASS: !Ref DocumentDBPassword
       Code:
@@ -265,7 +265,7 @@ Resources:
           - !Ref DocumentDBSecurityGroup
       Environment:
         Variables:
-          DOCDB_URI: !Sub "mongodb://${DocumentDBCluster.Endpoint}:27017/"
+          DOCDB_URI: !Sub "mongodb://${DocumentDBCluster.Endpoint}:27017/?retryWrites=false""
           DOCDB_USER: !Ref DocumentDBUser
           DOCDB_PASS: !Ref DocumentDBPassword
       Code:
