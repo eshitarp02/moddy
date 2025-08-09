@@ -272,6 +272,19 @@ Resources:
         S3Bucket: !Ref LambdaCodeBucket
         S3Key: activity_api.zip
 
+  ActivityLogGetMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref LogActivityApi
+      ResourceId: !Ref ActivityLogResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - { LambdaArn: !GetAtt ActivityApiLambda.Arn }
   ActivityLogResource:
     Type: AWS::ApiGateway::Resource
     Properties:
