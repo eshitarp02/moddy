@@ -28,24 +28,22 @@ def lambda_handler(event, context):
             data = json.loads(body)
         else:
             data = body
-        action = data.get('action')
         db = get_db()
         users = db['users']
 
-        if action == 'register':
+        # Registration logic remains unchanged
+        if data.get('action') == 'register':
             name = data['name']
             email = data['email'].strip().lower()
             password = data.get('password')
             provider = data.get('provider', 'email')
             providerId = data.get('providerId')
-            # Check if email already exists for this provider (case-insensitive)
             existing = users.find_one({"email": email, "provider": provider})
             if existing:
                 return {
                     "statusCode": 409,
                     "body": json.dumps({"error": "User with this email already exists"})
                 }
-            
             if provider == 'email':
                 hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
                 user = {
@@ -69,30 +67,29 @@ def lambda_handler(event, context):
                 "body": json.dumps({"message": "User registered", "userId": user["userId"]})
             }
 
-        elif action == 'login':
-            email = data['email']
+        # New login logic: accept email or name and password
+        if (data.get('email') or data.get('name')) and data.get('password'):
             password = data.get('password')
-            provider = data.get('provider', 'email')
-            providerId = data.get('providerId')
-            if provider == 'email':
-                user = users.find_one({"email": email, "provider": "email"})
-                if user and bcrypt.checkpw(password.encode(), user['password'].encode()):
-                    return {
-                        "statusCode": 200,
-                        "body": json.dumps({"userId": user["userId"], "name": user["name"], "email": user["email"]})
-                    }
-                else:
-                    return {"statusCode": 401, "body": json.dumps({"error": "Invalid credentials"})}
-            else:
-                user = users.find_one({"provider": provider, "providerId": providerId})
-                if user:
-                    return {
-                        "statusCode": 200,
-                        "body": json.dumps({"userId": user["userId"], "name": user["name"], "email": user["email"]})
-                    }
-                else:
-                    return {"statusCode": 401, "body": json.dumps({"error": "User not found"})}
-        else:
-            return {"statusCode": 400, "body": json.dumps({"error": "Invalid action"})}
+            user = None
+            if data.get('email'):
+                user = users.find_one({"email": data['email'].strip().lower()})
+            elif data.get('name'):
+                user = users.find_one({"name": data['name']})
+            if not user:
+                return {
+                    "statusCode": 404,
+                    "body": json.dumps({"error": "User not registered, please register."})
+                }
+            if not bcrypt.checkpw(password.encode(), user['password'].encode()):
+                return {
+                    "statusCode": 401,
+                    "body": json.dumps({"error": "Incorrect password."})
+                }
+            return {
+                "statusCode": 200,
+                "body": json.dumps({"userId": user["userId"]})
+            }
+
+        return {"statusCode": 400, "body": json.dumps({"error": "Invalid request. Please provide email or name and password."})}
     except Exception as e:
         return {"statusCode": 500, "body": json.dumps({"error": str(e)})}
