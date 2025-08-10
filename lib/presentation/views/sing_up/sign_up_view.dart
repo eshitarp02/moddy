@@ -33,15 +33,17 @@ class SignUpView extends StatelessWidget {
       builder: (context, state) {
         if (state is SignUpOnLoadState) {
           return Scaffold(
-            body: SignUpWidget(
-              firstName: state.firstName,
-              lastName: state.lastName,
-              email: state.email,
-              password: state.password,
-              confirmPassword: state.confirmPassword,
-              isPasswordObscured: state.isPasswordObscured,
-              isConfirmPasswordObscured: state.isConfirmPasswordObscured,
-              isSignUpInProgress: state.isSignUpInProgress,
+            body: SingleChildScrollView(
+              child: SignUpWidget(
+                firstName: state.firstName,
+                lastName: state.lastName,
+                email: state.email,
+                password: state.password,
+                confirmPassword: state.confirmPassword,
+                isPasswordObscured: state.isPasswordObscured,
+                isConfirmPasswordObscured: state.isConfirmPasswordObscured,
+                isSignUpInProgress: state.isSignUpInProgress,
+              ),
             ),
           );
         } else {

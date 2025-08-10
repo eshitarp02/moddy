@@ -1,5 +1,7 @@
 class ApiEndPoints {
-  static const String login = 'auth/login';
+  static const String signUp = 'prod/register';
+  static const String login = 'prod/login';
+  static const String logNewActivity = 'prod/activity-log';
 }
 
 class ApiConstants {

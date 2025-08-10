@@ -1,21 +1,21 @@
-class LoginResponseModel {
+class SignUpResponseModel {
+  String? message;
   String? userId;
-  String? error;
 
-  LoginResponseModel({
+  SignUpResponseModel({
+    this.message,
     this.userId,
-    this.error,
   });
 
-  LoginResponseModel.fromJson(Map<String, dynamic> json) {
+  SignUpResponseModel.fromJson(Map<String, dynamic> json) {
+    message = json['message'];
     userId = json['userId'];
-    error = json['error'];
   }
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = <String, dynamic>{};
+    data['message'] = message;
     data['userId'] = userId;
-    data['error'] = error;
     return data;
   }
 }

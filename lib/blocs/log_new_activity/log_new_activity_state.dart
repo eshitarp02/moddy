@@ -18,6 +18,7 @@ final class LogNewActivityOnLoadState extends LogNewActivityState {
   final String bookmark;
   final String? mood;
   final String errorMessage;
+  final bool isLogNewActivityInProgress;
 
   const LogNewActivityOnLoadState({
     this.activity = '',
@@ -25,6 +26,7 @@ final class LogNewActivityOnLoadState extends LogNewActivityState {
     this.bookmark = '',
     this.mood,
     this.errorMessage = '',
+    this.isLogNewActivityInProgress = false,
   });
 
   @override
@@ -34,6 +36,7 @@ final class LogNewActivityOnLoadState extends LogNewActivityState {
         bookmark,
         mood,
         errorMessage,
+        isLogNewActivityInProgress,
       ];
 
   LogNewActivityOnLoadState copyWith({
@@ -42,6 +45,7 @@ final class LogNewActivityOnLoadState extends LogNewActivityState {
     String? bookmark,
     String? mood,
     String? errorMessage,
+    bool? isLogNewActivityInProgress,
   }) {
     return LogNewActivityOnLoadState(
       activity: activity ?? this.activity,
@@ -49,6 +53,8 @@ final class LogNewActivityOnLoadState extends LogNewActivityState {
       bookmark: bookmark ?? this.bookmark,
       mood: mood ?? this.mood,
       errorMessage: errorMessage ?? '',
+      isLogNewActivityInProgress:
+          isLogNewActivityInProgress ?? this.isLogNewActivityInProgress,
     );
   }
 }
