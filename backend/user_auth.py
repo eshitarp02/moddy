@@ -67,14 +67,19 @@ def lambda_handler(event, context):
                 "body": json.dumps({"message": "User registered", "userId": user["userId"]})
             }
 
-        # New login logic: accept email or name and password
-        if (data.get('email') or data.get('name')) and data.get('password'):
-            password = data.get('password')
+        # Login logic: accept single 'username' field and 'password'
+        if data.get('username') and data.get('password'):
+            username = data['username'].strip()
+            password = data['password']
+            import re
+            email_regex = r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"
             user = None
-            if data.get('email'):
-                user = users.find_one({"email": data['email'].strip().lower()})
-            elif data.get('name'):
-                user = users.find_one({"name": data['name']})
+            if '@' in username and re.match(email_regex, username, re.IGNORECASE):
+                # Case-insensitive email lookup
+                user = users.find_one({"email": username.lower()})
+            else:
+                # Case-insensitive name lookup
+                user = users.find_one({"name": re.compile(f"^{re.escape(username)}$", re.IGNORECASE)})
             if not user:
                 return {
                     "statusCode": 404,
@@ -90,6 +95,6 @@ def lambda_handler(event, context):
                 "body": json.dumps({"userId": user["userId"]})
             }
 
-        return {"statusCode": 400, "body": json.dumps({"error": "Invalid request. Please provide email or name and password."})}
+        return {"statusCode": 400, "body": json.dumps({"error": "Invalid request. Please provide username and password."})}
     except Exception as e:
         return {"statusCode": 500, "body": json.dumps({"error": str(e)})}
