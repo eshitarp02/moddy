@@ -20,7 +20,7 @@ backend/package/
 backend/unzipped_package/
 
 # Lambda packages & zips
-*.zip
+backend/*.zip
 
 # Response / test output
 response.json
