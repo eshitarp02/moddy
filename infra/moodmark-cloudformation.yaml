@@ -453,10 +453,22 @@ Resources:
       Role: !GetAtt GetSuggestionLambdaRole.Arn
       Runtime: python3.9
       Timeout: 15
+      VpcConfig:
+        SubnetIds:
+          - !Ref PrivateSubnet1
+        SecurityGroupIds:
+          - !Ref DocumentDBSecurityGroup
       Environment:
         Variables:
           S3_BUCKET: !Ref S3BucketName
-          GOOGLE_AI_API_KEY: !Ref GoogleAiApiKey
+          DOCDB_URI: !Sub "mongodb://${DocumentDBCluster.Endpoint}:27017/?retryWrites=false"
+          DOCDB_USER: !Ref DocumentDBUser
+          DOCDB_PASS: !Ref DocumentDBPassword
+          DB_NAME: moodmark
+          COLL_ACTIVITIES: activities
+          MODEL_PROVIDER: bedrock
+          BEDROCK_MODEL_ID: anthropic.claude-3.5-sonnet-20240620-v1:0
+          AWS_REGION: !Ref AWS::Region
       Code:
         S3Bucket: !Ref LambdaCodeBucket
         S3Key: !Ref GetSuggestionZipKey
