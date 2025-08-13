@@ -31,13 +31,28 @@ def lambda_handler(event, context):
         db = get_db()
         users = db['users']
 
-        # Registration logic remains unchanged
+        # Registration logic with required field validation
         if data.get('action') == 'register':
-            name = data['name']
-            email = data['email'].strip().lower()
+            name = data.get('name')
+            email = data.get('email')
             password = data.get('password')
             provider = data.get('provider', 'email')
             providerId = data.get('providerId')
+
+            missing_fields = []
+            if not name:
+                missing_fields.append('name')
+            if not email:
+                missing_fields.append('email')
+            if provider == 'email' and not password:
+                missing_fields.append('password')
+            if missing_fields:
+                return {
+                    "statusCode": 400,
+                    "body": json.dumps({"error": f"Missing required field(s): {', '.join(missing_fields)}"})
+                }
+
+            email = email.strip().lower()
             existing = users.find_one({"email": email, "provider": provider})
             if existing:
                 return {
