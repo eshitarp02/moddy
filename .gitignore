@@ -1,6 +1,17 @@
-# Python cache
+##################################
+# Python / Backend
+##################################
+
+# Byte-compiled / cache
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+ENV/
 
 # Build artifacts
 backend/build_user_auth/
@@ -8,15 +19,57 @@ backend/user_auth_package/
 backend/package/
 backend/unzipped_package/
 
-# Zip files
+# Lambda packages & zips
 *.zip
 
-# Scratch files
+# Response / test output
 response.json
-backend/response.json
 
-# OS/IDE files
+# AWS SAM / CDK / CloudFormation build artifacts
+.aws-sam/
+cdk.out/
+.template/
+
+##################################
+# Frontend (Node/React/Flutter)
+##################################
+
+# Node modules
+node_modules/
+
+# Build output
+dist/
+build/
+public/build/
+
+# Flutter build
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+pubspec.lock
+ios/Pods/
+ios/Podfile.lock
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/.symlinks/
+ios/Flutter/App.framework
+ios/Flutter/Generated.xcconfig
+ios/ServiceDefinitions.json
+android/.gradle/
+android/app/build/
+
+##################################
+# Logs & OS/IDE
+##################################
+
+# Logs
+*.log
+logs/
+
+# Mac & Windows OS files
 .DS_Store
 Thumbs.db
+
+# IDE/project files
 .idea/
 .vscode/
