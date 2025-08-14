@@ -471,7 +471,6 @@ Resources:
           COLL_ACTIVITIES: activities
           MODEL_PROVIDER: bedrock
           BEDROCK_MODEL_ID: anthropic.claude-3.5-sonnet-20240620-v1:0
-          AWS_REGION: !Ref AWS::Region
       Code:
         S3Bucket: !Ref LambdaCodeBucket
         S3Key: !Ref GetSuggestionZipKey
