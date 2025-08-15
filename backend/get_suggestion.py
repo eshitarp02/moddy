@@ -6,6 +6,7 @@ import time
 from datetime import datetime, timedelta
 from pymongo import MongoClient
 import boto3
+from botocore.config import Config
 
 # --- Helpers ---
 _mongo_client = None
@@ -51,8 +52,10 @@ def build_prompt(history, now, weather):
 
 def call_bedrock_claude(prompt):
     model_id = os.environ.get('BEDROCK_MODEL_ID', 'anthropic.claude-3.5-sonnet-20240620-v1:0')
-    region = os.environ.get('AWS_REGION', os.environ.get('AWS_DEFAULT_REGION', 'us-east-1'))
-    client = boto3.client('bedrock-runtime', region_name=region)
+    region = os.environ.get('AWS_REGION', os.environ.get('AWS_DEFAULT_REGION', 'eu-west-2'))
+    # Add timeouts and retry config
+    client = boto3.client('bedrock-runtime', region_name=region,
+                         config=Config(read_timeout=3, connect_timeout=2, retries={'max_attempts': 1}))
     system_instruction = (
         "You are an assistant that always responds in strict JSON with this schema: "
         "{ 'suggestion': string, 'alternatives': [string], 'reasoning': string, 'source': 'ai', 'metrics': { 'db_ms': int, 'llm_ms': int, 'items': int }, 'applied': { 'userId': string, 'filters': { 'avoidRecentDays': 3, 'historyWindowDays': 30 } } }"
@@ -150,19 +153,22 @@ def lambda_handler(event, context):
         metrics = {"db_ms": db_ms, "llm_ms": 0, "items": len(history)}
         applied = {"userId": user_id, "filters": {"avoidRecentDays": 3, "historyWindowDays": 30}}
         prompt = build_prompt(history, now, weather)
-        try:
-            result, llm_ms = call_bedrock_claude(prompt)
-            result["metrics"]["db_ms"] = db_ms
-            result["metrics"]["llm_ms"] = llm_ms
-            result["metrics"]["items"] = len(history)
-            result["applied"] = applied
-            return {"statusCode": 200, "headers": headers, "body": json.dumps(result)}
-        except Exception as e:
-            logger.exception("Bedrock/LLM error, using fallback.")
-            fallback = rule_based_suggestion(history, now)
-            fallback["metrics"] = metrics
-            fallback["applied"] = applied
-            return {"statusCode": 200, "headers": headers, "body": json.dumps(fallback)}
+        use_bedrock = os.environ.get('USE_BEDROCK', 'true').lower() == 'true'
+        if use_bedrock:
+            try:
+                result, llm_ms = call_bedrock_claude(prompt)
+                result["metrics"]["db_ms"] = db_ms
+                result["metrics"]["llm_ms"] = llm_ms
+                result["metrics"]["items"] = len(history)
+                result["applied"] = applied
+                return {"statusCode": 200, "headers": headers, "body": json.dumps(result)}
+            except Exception as e:
+                logger.exception("Bedrock/LLM error, using fallback.")
+        # fallback if Bedrock is disabled or fails
+        fallback = rule_based_suggestion(history, now)
+        fallback["metrics"] = metrics
+        fallback["applied"] = applied
+        return {"statusCode": 200, "headers": headers, "body": json.dumps(fallback)}
     except Exception as e:
         logger.exception("Internal error.")
         return {"statusCode": 500, "headers": headers, "body": json.dumps({"error": str(e)})}
