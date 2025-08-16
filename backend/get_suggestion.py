@@ -93,14 +93,14 @@ def call_bedrock_claude(prompt: str):
 
     payload = _anthropic_payload(system_instruction, prompt)
 
-    start = time.time()
+    start = time.perf_counter()
     response = client.invoke_model(
         modelId=model_id,
         body=json.dumps(payload),
         contentType="application/json",
         accept="application/json",
     )
-    llm_ms = int((time.time() - start) * 1000)
+    llm_ms = max(1, int((time.perf_counter() - start) * 1000))  # never 0
     logger.info("bedrock.invoke_model.ok duration_ms=%d", llm_ms)
 
     body = response.get("body")
@@ -134,7 +134,12 @@ def call_bedrock_claude(prompt: str):
     # Ensure metrics.llm_ms is set (or updated) in the parsed JSON
     if isinstance(result, dict):
         result.setdefault("metrics", {})
-        result["metrics"]["llm_ms"] = llm_ms
+        existing = result["metrics"].get("llm_ms", 0)
+        try:
+            existing = int(existing)
+        except Exception:
+            existing = 0
+        result["metrics"]["llm_ms"] = max(existing, llm_ms, 1)
         result.setdefault("source", "ai")
 
     return result, llm_ms
