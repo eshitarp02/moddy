@@ -187,10 +187,10 @@ def lambda_handler(event, context):
         }
         llm_ms = 0
 
-    # Ensure applied.userId exists
+    # Ensure applied.userId is always the actual caller's id
     if isinstance(result, dict):
         result.setdefault("applied", {})
-        result["applied"].setdefault("userId", user_id)
+        result["applied"]["userId"] = user_id  # force the actual caller's id
         result["applied"].setdefault("filters", {"avoidRecentDays": 3, "historyWindowDays": 30})
 
     return {
