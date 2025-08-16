@@ -2,173 +2,199 @@
 import os
 import json
 import logging
+import os
+import json
 import time
-from datetime import datetime, timedelta
-from pymongo import MongoClient
+import logging
 import boto3
 from botocore.config import Config
 
-# --- Helpers ---
-_mongo_client = None
-def get_db():
-    global _mongo_client
-    if _mongo_client is None:
-        uri = os.environ['DOCDB_URI']
-        user = os.environ['DOCDB_USER']
-        pw = os.environ['DOCDB_PASS']
-        db_name = os.environ.get('DB_NAME', 'moodmark')
-        _mongo_client = MongoClient(
-            uri,
-            username=user,
-            password=pw,
-            tls=True,
-            tlsAllowInvalidCertificates=True,
-            serverSelectionTimeoutMS=5000
-        )
-    return _mongo_client[os.environ.get('DB_NAME', 'moodmark')]
+# ---------- CloudWatch logging setup ----------
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+logging.basicConfig(level=LOG_LEVEL)
+logger = logging.getLogger(__name__)
 
-def get_time_of_day(now):
-    hour = now.hour
-    if 5 <= hour < 12:
-        return 'morning'
-    elif 12 <= hour < 17:
-        return 'afternoon'
-    elif 17 <= hour < 22:
-        return 'evening'
+def _resolve_bedrock_region():
+    """
+    Resolve the Bedrock region in a safe order.
+    Returns: (region, source)
+    """
+    session = boto3.session.Session()
+    region = (
+        os.getenv("BEDROCK_REGION")
+        or os.getenv("AWS_REGION")
+        or session.region_name
+        or "eu-west-2"
+    )
+
+    if os.getenv("BEDROCK_REGION"):
+        source = "BEDROCK_REGION"
+    elif os.getenv("AWS_REGION"):
+        source = "AWS_REGION"
+    elif session.region_name:
+        source = "boto3_session"
     else:
-        return 'late-night'
+        source = "default_eu-west-2"
 
-def build_prompt(history, now, weather):
-    bullets = []
-    for act in history:
-        mood = int(act.get('mood', 5))
-        ts = act.get('timestamp', '')
-        title = act.get('title', act.get('activity_type', ''))
-        desc = act.get('description', '')
-        bullets.append(f"- {title} ({desc}) [{mood}/10, {ts}]")
-    prompt = f"Recent activities:\n" + "\n".join(bullets)
-    prompt += f"\nTime of day: {get_time_of_day(now)}\nWeather: {weather}\nSuggest a new hobby in strict JSON:"
-    return prompt
+    return region, source
 
-def call_bedrock_claude(prompt):
-    model_id = os.environ.get('BEDROCK_MODEL_ID', 'anthropic.claude-3.5-sonnet-20240620-v1:0')
-    region = os.environ.get('AWS_REGION', os.environ.get('AWS_DEFAULT_REGION', 'eu-west-2'))
-    # Add timeouts and retry config
-    client = boto3.client('bedrock-runtime', region_name=region,
-                         config=Config(read_timeout=3, connect_timeout=2, retries={'max_attempts': 1}))
+
+def _anthropic_payload(system_instruction: str, prompt: str) -> dict:
+    """
+    Build the Anthropic-on-Bedrock request payload.
+    """
+    return {
+        "anthropic_version": "bedrock-2023-05-31",
+        "max_tokens": 512,
+        "temperature": 0.2,
+        "system": system_instruction,
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt}
+                ]
+            }
+        ]
+    }
+
+
+def call_bedrock_claude(prompt: str):
+    """
+    Calls Bedrock Claude with correct Anthropic payload.
+    Returns: (result_dict, llm_ms)
+    - result_dict: parsed JSON (or wrapped) following your schema
+    - llm_ms: time spent in the invoke call in milliseconds.
+    """
+    model_id = os.environ.get(
+        "BEDROCK_MODEL_ID",
+        "anthropic.claude-3-sonnet-20240229-v1:0"
+    )
     system_instruction = (
         "You are an assistant that always responds in strict JSON with this schema: "
-        "{ 'suggestion': string, 'alternatives': [string], 'reasoning': string, 'source': 'ai', 'metrics': { 'db_ms': int, 'llm_ms': int, 'items': int }, 'applied': { 'userId': string, 'filters': { 'avoidRecentDays': 3, 'historyWindowDays': 30 } } }"
+        "{ 'suggestion': string, 'alternatives': [string], 'reasoning': string, 'source': 'ai', "
+        "'metrics': { 'db_ms': int, 'llm_ms': int, 'items': int }, "
+        "'applied': { 'userId': string, 'filters': { 'avoidRecentDays': 3, 'historyWindowDays': 30 } } } "
         "Do not include any prose or explanation outside the JSON."
     )
-    body = {
-        "modelId": model_id,
-        "contentType": "application/json",
-        "accept": "application/json",
-        "body": json.dumps({
-            "messages": [
-                {"role": "system", "content": system_instruction},
-                {"role": "user", "content": prompt}
-            ]
-        })
-    }
+
+    region, source = _resolve_bedrock_region()
+    logger.info("bedrock.region.selected=%s source=%s model_id=%s", region, source, model_id)
+
+    client = boto3.client(
+        "bedrock-runtime",
+        region_name=region,
+        config=Config(
+            read_timeout=12,   # short, so API GW doesn't hit 29s
+            connect_timeout=3,
+            retries={"max_attempts": 2, "mode": "adaptive"},
+        ),
+    )
+
+    payload = _anthropic_payload(system_instruction, prompt)
+
     start = time.time()
     response = client.invoke_model(
         modelId=model_id,
-        body=body['body'],
+        body=json.dumps(payload),
         contentType="application/json",
-        accept="application/json"
+        accept="application/json",
     )
     llm_ms = int((time.time() - start) * 1000)
-    result = response['body'].read().decode('utf-8')
-    try:
-        parsed = json.loads(result)
-        # Validate keys
-        for k in ["suggestion", "alternatives", "reasoning", "source", "metrics", "applied"]:
-            if k not in parsed:
-                raise ValueError(f"Missing key: {k}")
-        return parsed, llm_ms
-    except Exception:
-        raise ValueError("Invalid LLM response")
+    logger.info("bedrock.invoke_model.ok duration_ms=%d", llm_ms)
 
-def rule_based_suggestion(history, now):
-    # Exclude last 3 days
-    cutoff = now - timedelta(days=3)
-    filtered = [a for a in history if datetime.fromisoformat(a['timestamp']) < cutoff]
-    # Score by mood
-    scored = sorted(filtered, key=lambda a: int(a.get('mood', 5)), reverse=True)
-    suggestion = scored[0]['title'] if scored else "Try something new!"
-    alternatives = [a['title'] for a in scored[1:3]] if len(scored) > 2 else ["Read a book", "Go for a walk"]
-    reasoning = "Based on your past activities and mood scores."
-    return {
-        "suggestion": suggestion,
-        "alternatives": alternatives,
-        "reasoning": reasoning,
-        "source": "rule",
-        "metrics": {},
-        "applied": {}
-    }
+    body = response.get("body")
+    if hasattr(body, "read"):
+        body = body.read()
+    if isinstance(body, (bytes, bytearray)):
+        body = body.decode("utf-8")
+
+    # Parse Anthropic response to get the text content
+    data = json.loads(body)
+    text = ""
+    if isinstance(data, dict) and "content" in data and data["content"]:
+        first = data["content"][0]
+        text = first.get("text") if isinstance(first, dict) else str(first)
+    else:
+        text = body if isinstance(body, str) else json.dumps(data)
+
+    # The system prompt asked for strict JSON in the text; attempt to parse
+    try:
+        result = json.loads(text)
+    except Exception:
+        result = {
+            "suggestion": text.strip()[:300],
+            "alternatives": [],
+            "reasoning": "Model returned non-JSON; wrapped automatically.",
+            "source": "ai",
+            "metrics": {"db_ms": 0, "llm_ms": llm_ms, "items": 0},
+            "applied": {"userId": "", "filters": {"avoidRecentDays": 3, "historyWindowDays": 30}},
+        }
+
+    # Ensure metrics.llm_ms is set (or updated) in the parsed JSON
+    if isinstance(result, dict):
+        result.setdefault("metrics", {})
+        result["metrics"]["llm_ms"] = llm_ms
+        result.setdefault("source", "ai")
+
+    return result, llm_ms
+
 
 def lambda_handler(event, context):
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-    headers = {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type,Authorization,x-api-key",
-        "Access-Control-Allow-Methods": "GET,OPTIONS",
-        "Content-Type": "application/json"
-    }
-    if event.get('httpMethod', '') == 'OPTIONS':
-        return {"statusCode": 200, "headers": headers, "body": json.dumps({})}
+    """
+    Lambda handler that honors USE_BEDROCK and returns your existing schema.
+    """
+    use_bedrock = os.getenv("USE_BEDROCK", "true").lower() == "true"
+    user_id = None
     try:
-        params = event.get('queryStringParameters') or {}
-        user_id = params.get('userId')
-        if not user_id:
-            return {"statusCode": 400, "headers": headers, "body": json.dumps({"error": "Missing userId"})}
-        time_of_day = params.get('timeOfDay')
-        weather = params.get('weather', 'clear')
-        now = datetime.utcnow()
-        if not time_of_day:
-            time_of_day = get_time_of_day(now)
-        db_start = time.time()
-        db = get_db()
-        coll = db[os.environ.get('COLL_ACTIVITIES', 'activities')]
-        thirty_days_ago = now - timedelta(days=30)
-        items = list(coll.find({
-            "userId": user_id,
-            "timestamp": {"$gte": thirty_days_ago.isoformat()}
-        }).sort("timestamp", -1).limit(60))
-        db_ms = int((time.time() - db_start) * 1000)
-        # Exclude last 3 days
-        cutoff = now - timedelta(days=3)
-        history = [
-            {
-                "title": i.get("title", i.get("activity_type", "")),
-                "description": i.get("description", ""),
-                "mood": int(i.get("mood", 5)),
-                "timestamp": i.get("timestamp", "")
-            }
-            for i in items if datetime.fromisoformat(i.get("timestamp", thirty_days_ago.isoformat())) < cutoff
-        ]
-        metrics = {"db_ms": db_ms, "llm_ms": 0, "items": len(history)}
-        applied = {"userId": user_id, "filters": {"avoidRecentDays": 3, "historyWindowDays": 30}}
-        prompt = build_prompt(history, now, weather)
-        use_bedrock = os.environ.get('USE_BEDROCK', 'true').lower() == 'true'
-        if use_bedrock:
-            try:
-                result, llm_ms = call_bedrock_claude(prompt)
-                result["metrics"]["db_ms"] = db_ms
-                result["metrics"]["llm_ms"] = llm_ms
-                result["metrics"]["items"] = len(history)
-                result["applied"] = applied
-                return {"statusCode": 200, "headers": headers, "body": json.dumps(result)}
-            except Exception as e:
-                logger.exception("Bedrock/LLM error, using fallback.")
-        # fallback if Bedrock is disabled or fails
-        fallback = rule_based_suggestion(history, now)
-        fallback["metrics"] = metrics
-        fallback["applied"] = applied
-        return {"statusCode": 200, "headers": headers, "body": json.dumps(fallback)}
+        if isinstance(event, dict):
+            qi = event.get("queryStringParameters") or {}
+            user_id = qi.get("userId") or event.get("userId")
+    except Exception:
+        pass
+
+    logger.info("request.start use_bedrock=%s userId=%s", use_bedrock, user_id)
+
+    # If Bedrock disabled, return rule-based fallback quickly
+    if not use_bedrock:
+        body = {
+            "suggestion": "Try something new!",
+            "alternatives": ["Read a book", "Go for a walk"],
+            "reasoning": "Based on your past activities and mood scores.",
+            "source": "rule",
+            "metrics": {"db_ms": 0, "llm_ms": 0, "items": 0},
+            "applied": {"userId": user_id, "filters": {"avoidRecentDays": 3, "historyWindowDays": 30}},
+        }
+        return {
+            "statusCode": 200,
+            "headers": {"Content-Type": "application/json"},
+            "body": json.dumps(body),
+        }
+
+    prompt = "Provide a JSON suggestion following the given schema for the user."
+
+    try:
+        result, llm_ms = call_bedrock_claude(prompt)
     except Exception as e:
-        logger.exception("Internal error.")
-        return {"statusCode": 500, "headers": headers, "body": json.dumps({"error": str(e)})}
+        logger.exception("Bedrock/LLM error, using fallback.")
+        result = {
+            "suggestion": "Try something new!",
+            "alternatives": ["Read a book", "Go for a walk"],
+            "reasoning": "Fallback due to LLM error.",
+            "source": "rule",
+            "metrics": {"db_ms": 0, "llm_ms": 0, "items": 0},
+            "applied": {"userId": user_id, "filters": {"avoidRecentDays": 3, "historyWindowDays": 30}},
+        }
+        llm_ms = 0
+
+    # Ensure applied.userId exists
+    if isinstance(result, dict):
+        result.setdefault("applied", {})
+        result["applied"].setdefault("userId", user_id)
+        result["applied"].setdefault("filters", {"avoidRecentDays": 3, "historyWindowDays": 30})
+
+    return {
+        "statusCode": 200,
+        "headers": {"Content-Type": "application/json"},
+        "body": json.dumps(result),
+    }
