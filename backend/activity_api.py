@@ -119,6 +119,8 @@ def lambda_handler(event, context):
         page_size = get_param('pageSize', 10, int)
         start_date = get_param('startDate')  # ISO-8601 string expected
         end_date = get_param('endDate')
+        sort_order = int(get_param('sortOrder', 1))  # 1=asc, 0=desc
+        sort_dir = 1 if sort_order == 1 else -1
 
         # Build Mongo query
         query = {}
@@ -136,7 +138,7 @@ def lambda_handler(event, context):
         total = activities.count_documents(query)
         cursor = (
             activities.find(query)
-            .sort("timestamp", -1)
+            .sort("timestamp", sort_dir)
             .skip(max(0, (page - 1) * page_size))
             .limit(page_size)
         )
