@@ -91,6 +91,26 @@ Parameters:
     Description: Google AI API Key for Lambda (if needed)
 
 Resources:
+  ActivitySuggestionResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref LogActivityApi
+      ParentId: !GetAtt LogActivityApi.RootResourceId
+      PathPart: activity-suggestion
+
+  ActivitySuggestionMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref LogActivityApi
+      ResourceId: !Ref ActivitySuggestionResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - { LambdaArn: !GetAtt ActivityApiLambda.Arn }
   VPC:
     Type: AWS::EC2::VPC
     Properties:
