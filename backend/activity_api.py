@@ -11,12 +11,12 @@ def get_db():
     password = os.environ.get('DOCDB_PASS')
     if not uri or not username or not password:
         raise Exception("Missing DocumentDB environment variables")
+    # DEV ONLY: No TLS/CA
     client = MongoClient(
         uri,
         username=username,
         password=password,
-        tls=True,
-        tlsAllowInvalidCertificates=True,
+        tls=False,
         serverSelectionTimeoutMS=5000,
     )
     return client['moodmark']
@@ -32,6 +32,40 @@ def _resp(status, body_dict):
     }
 
 def lambda_handler(event, context):
+    # -----------------------------
+    # GET /activity-suggestion (two-line popup via Bedrock)
+    # -----------------------------
+    if method == 'GET' and path.endswith('/activity-suggestion'):
+        user_id = qs.get('userId')
+        if not user_id:
+            return _resp(400, {"error": "Missing userId"})
+        # Get latest activity for user
+        latest = activities.find({"userId": user_id}).sort("timestamp", -1).limit(1)
+        latest = next(latest, None)
+        if not latest:
+            return _resp(404, {"error": "No activity found for user"})
+        # Build user message
+        user_message = f"""
+activityType: {latest.get('activityType','')}
+description: {latest.get('description','')}
+mood: {latest.get('mood','')}
+bookmark: {latest.get('bookmark','')}
+"""
+        # System prompt
+        system_message = (
+            "You write copy for a popup. Output exactly TWO lines, each ≤ 16 words.\n"
+            "Line 1: Reference the user’s last activity using “{activityType} — {description}” and gently reflect the mood.\n"
+            "Line 2: Clear CTA tailored to the activity (e.g., “Episode 17…”, “Start your run…”, “Open your sketchbook…”).\n"
+            "If bookmark is truthy/URL, subtly acknowledge with “your favorite” or “bookmarked pick” (no links in text).\n"
+            "Friendly, supportive, no spoilers, no lists, no quotes/markdown/hashtags, ≤1 emoji total, at most one question."
+        )
+        # Call Bedrock Claude (pseudo-code, replace with your actual invoke)
+        try:
+            from backend.get_suggestion import call_bedrock_claude
+            popup_text, _ = call_bedrock_claude(user_message)
+        except Exception as e:
+            return _resp(500, {"error": "Bedrock call failed", "details": str(e)})
+        return _resp(200, {"popup": popup_text})
     db = get_db()
     activities = db['activities']
     users = db['users']
