@@ -643,11 +643,6 @@ def lambda_handler(event, context):
         return _resp(200, {"logs": logs, "page": page, "pageSize": page_size})
 
     return _resp(400, {"error": "Invalid request"})
-            if endDate:
-                query['timestamp']['$lte'] = endDate
-        page = get_param('page', 1, int)
-        page_size = get_param('pageSize', 10, int)
-        cursor = (activities.find(query)
                            .sort("timestamp", -1)
                            .skip(max(0, (page - 1) * page_size))
                            .limit(page_size))
