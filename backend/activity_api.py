@@ -128,7 +128,6 @@ def _generate_lines(doc: Dict[str, Any]) -> List[str]:
 # -----------------------------
 
 def lambda_handler(event, context):
-    pass
     # 1) Extract HTTP meta FIRST
     method, path, qs = _extract_http_meta(event)
 
@@ -158,6 +157,7 @@ def lambda_handler(event, context):
                 return default
         return val
 
+    # ...existing code...
     # -----------------------------
     # GET /activity-suggestion
     # -----------------------------
