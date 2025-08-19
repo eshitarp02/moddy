@@ -24,13 +24,15 @@ def get_db():
     password = os.environ.get('DOCDB_PASS')
     if not uri or not username or not password:
         raise Exception("Missing DocumentDB environment variables")
-    client = MongoClient(
-        uri,
-        username=username,
-        password=password,
-        serverSelectionTimeoutMS=5000,
-    )
-    return client['moodmark']
+        client = MongoClient(
+            uri,
+            username=username,
+            password=password,
+            tls=True,
+            tlsAllowInvalidCertificates=True, # dev only; do NOT use in prod
+            serverSelectionTimeoutMS=5000,
+        )
+        return client['moodmark']
 
 
 def _resp(status: int, body_dict: Dict[str, Any]) -> Dict[str, Any]:
@@ -155,6 +157,16 @@ def lambda_handler(event, context):
                 return cast(val)
             except Exception:
                 return default
+        # Health check endpoints
+        if method == 'GET' and path.endswith('/health'):
+            return _resp(200, {"ok": True})
+
+        if method == 'GET' and path.endswith('/db-ping'):
+            try:
+                get_db().command("ping")
+                return _resp(200, {"db": "ok"})
+            except Exception as e:
+                return _resp(500, {"db": "fail", "error": str(e)})
         return val
 
     # ...existing code...
