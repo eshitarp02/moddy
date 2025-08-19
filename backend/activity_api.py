@@ -171,14 +171,12 @@ def lambda_handler(event, context):
     # -----------------------------
     if method == 'GET' and path.endswith('/activity-suggestion'):
         user_id = qs.get('userId')
-        limit = int(qs.get('limit', 1))
         if not user_id:
             return _resp(400, {"error": "Missing userId"})
 
         cursor = (
             activities.find({"userId": user_id})
             .sort([("timestamp", DESCENDING), ("lastUpdated", DESCENDING)])
-            .limit(limit)
         )
         docs = [{k: v for k, v in d.items() if k != "_id"} for d in cursor]
         if not docs:
@@ -203,7 +201,7 @@ def lambda_handler(event, context):
             }
 
         suggestions = [to_popup(d, _generate_lines(d)) for d in docs]
-        return _resp(200, suggestions[0] if limit == 1 else {"suggestions": suggestions})
+        return _resp(200, {"suggestions": suggestions})
 
     # -----------------------------
     # POST /activity-log (create)
