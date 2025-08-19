@@ -32,6 +32,10 @@ def _resp(status, body_dict):
     }
 
 def lambda_handler(event, context):
+    method = (event.get('httpMethod') or '').upper()
+    path = event.get('path') or ''
+    qs = event.get('queryStringParameters') or {}
+
     # -----------------------------
     # GET /activity-suggestion (two-line popup via Bedrock)
     # -----------------------------
