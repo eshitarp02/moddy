@@ -2,8 +2,9 @@
 import os
 import json
 import uuid
-from pymongo import MongoClient
+from pymongo import MongoClient, DESCENDING
 from datetime import datetime
+import boto3
 
 def get_db():
     uri = os.environ.get('DOCDB_URI')  # e.g., ...:27017/?retryWrites=false
@@ -51,34 +52,86 @@ def lambda_handler(event, context):
         # Build user message
         user_message = f"""
 activityType: {latest.get('activityType','')}
-description: {latest.get('description','')}
-mood: {latest.get('mood','')}
-bookmark: {latest.get('bookmark','')}
-"""
-        # System prompt
-        system_message = (
-            "You write copy for a popup. Output exactly TWO lines, each ≤ 16 words.\n"
-            "Line 1: Reference the user’s last activity using “{activityType} — {description}” and gently reflect the mood.\n"
-            "Line 2: Clear CTA tailored to the activity (e.g., “Episode 17…”, “Start your run…”, “Open your sketchbook…”).\n"
-            "If bookmark is truthy/URL, subtly acknowledge with “your favorite” or “bookmarked pick” (no links in text).\n"
-            "Friendly, supportive, no spoilers, no lists, no quotes/markdown/hashtags, ≤1 emoji total, at most one question."
+
+# --- Bedrock and HTTP helpers ---
+AWS_REGION = os.getenv("AWS_REGION", "eu-west-2")
+MODEL_ID   = os.getenv("MODEL_ID", "anthropic.claude-3-haiku-20240307-v1:0")
+bedrock = boto3.client("bedrock-runtime", region_name=AWS_REGION)
+
+def _extract_http_meta(event):
+    method = event.get("httpMethod")
+    if not method:
+        rc = event.get("requestContext", {})
+        http_ctx = rc.get("http", {})
+        method = http_ctx.get("method", "")
+    method = method.upper() if method else ""
+    path = event.get("path") or event.get("rawPath") or ""
+    qs = event.get("queryStringParameters") or {}
+    return method, path, qs
+    path = event.get("path") or event.get("rawPath") or ""
+    qs = event.get("queryStringParameters") or {}
+    return method, path, qs
+
+def _build_body(doc):
+    system = (
+        "You write copy for a popup. Output exactly TWO lines, each ≤ 16 words. "
+        "Line 1: Reference the user’s last activity using “{activityType} — {description}” and gently reflect the mood. "
+        "Line 2: Clear CTA tailored to the activity (e.g., “Episode 17…”, “Start your run…”, “Open your sketchbook…”). "
+        "If bookmark is truthy/URL, subtly acknowledge with “your favorite” or “bookmarked pick” (no links in text). "
+        "Friendly, supportive, no spoilers, no lists, no quotes/markdown/hashtags, ≤1 emoji total, at most one question."
+    )
+    user = (
+        f"activityType: {doc.get('activityType','')}\n"
+        f"description: {doc.get('description','')}\n"
+        f"mood: {doc.get('mood','')}\n"
+        f"bookmark: {doc.get('bookmark')}\n\n"
+        "Write the two lines now."
+    )
+    return {
+        "anthropic_version": "bedrock-2023-05-31",
+        "max_tokens": 120,
+        "temperature": 0.6,
+        "top_p": 0.9,
+        "system": system,
+        "messages": [{"role": "user", "content": [{"type": "text", "text": user}]}],
+        "stop_sequences": ["\n\n"]
+    }
+
+def _fallback_lines(doc):
+    label = f"{doc.get('activityType','activity')} — {doc.get('description','')}".strip(" —")
+    return [
+        f"{label} fits your {str(doc.get('mood','neutral')).lower()} vibe.",
+        "Tap Next to continue."
+    ]
+
+def _generate_lines(doc):
+    try:
+        body = _build_body(doc)
+        resp = bedrock.invoke_model(
+            modelId=MODEL_ID,
+            contentType="application/json",
+            accept="application/json",
+            body=json.dumps(body),
         )
-        # Call Bedrock Claude (pseudo-code, replace with your actual invoke)
-        try:
-            from backend.get_suggestion import call_bedrock_claude
-            popup_text, _ = call_bedrock_claude(user_message)
-        except Exception as e:
-            return _resp(500, {"error": "Bedrock call failed", "details": str(e)})
-        return _resp(200, {"popup": popup_text})
+        payload = json.loads(resp["body"].read())
+        text = "".join(
+            b.get("text","") for b in payload.get("content", []) if b.get("type") == "text"
+        ).strip()
+        lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+        return lines[:2] if len(lines) >= 2 else _fallback_lines(doc)
+    except Exception:
+        return _fallback_lines(doc)
+
+def lambda_handler(event, context):
+    # 1) Extract HTTP meta FIRST
+    method, path, qs = _extract_http_meta(event)
+
+    # 2) Init DB/collections BEFORE any route logic
     db = get_db()
     activities = db['activities']
     users = db['users']
 
-    method = (event.get('httpMethod') or '').upper()
-    path = event.get('path') or ''
-    qs = event.get('queryStringParameters') or {}
-
-    # Safely parse body
+    # 3) Parse body safely
     body = event.get('body')
     if isinstance(body, str):
         try:
@@ -88,9 +141,8 @@ bookmark: {latest.get('bookmark','')}
     else:
         data = body or {}
 
-    # Helper to read/convert query params
     def get_param(name, default=None, cast=None):
-        val = qs.get(name, default)
+        val = (qs or {}).get(name, default)
         if val is None or val == '':
             return default
         if cast:
@@ -101,7 +153,44 @@ bookmark: {latest.get('bookmark','')}
         return val
 
     # -----------------------------
-    # POST /activity-log  (create)
+    # GET /activity-suggestion
+    # -----------------------------
+    if method == 'GET' and path.endswith('/activity-suggestion'):
+        user_id = qs.get('userId')
+        limit = int(qs.get('limit', 1))
+        if not user_id:
+            return _resp(400, {"error": "Missing userId"})
+
+        cursor = (activities.find({"userId": user_id})
+                             .sort([("timestamp", DESCENDING), ("lastUpdated", DESCENDING)])
+                             .limit(limit))
+        docs = [{k: v for k, v in d.items() if k != "_id"} for d in cursor]
+        if not docs:
+            return _resp(404, {"error": "No activity found for user"})
+
+        def to_popup(doc, lines):
+            return {
+                "ui": {"title": "Suggested For You"},
+                "bodyLines": lines,
+                "cta": {
+                    "id": "next",
+                    "label": "Next",
+                    "action": "open",
+                    "payload": {
+                        "activityId": doc.get("activityId"),
+                        "activityType": doc.get("activityType"),
+                        "description": doc.get("description"),
+                        "bookmark": doc.get("bookmark"),
+                    },
+                },
+                "meta": {"source": "anthropic", "mood": doc.get("mood"), "timestamp": doc.get("timestamp")},
+            }
+
+        suggestions = [to_popup(d, _generate_lines(d)) for d in docs]
+        return _resp(200, suggestions[0] if limit == 1 else {"suggestions": suggestions})
+
+    # -----------------------------
+    # POST /activity-log (create)
     # -----------------------------
     if method == 'POST' and path.endswith('/activity-log'):
         userId = data.get('userId')
@@ -113,7 +202,6 @@ bookmark: {latest.get('bookmark','')}
         if not activityType or not description:
             return _resp(400, {"error": "Missing mandatory field: activityType or description"})
 
-        # Store timestamps as ISO-8601 strings (consistent with your current code)
         now_iso = datetime.utcnow().isoformat()
         activity = {
             "activityId": str(uuid.uuid4()),
@@ -129,84 +217,69 @@ bookmark: {latest.get('bookmark','')}
         return _resp(201, {"message": "Activity logged", "activityId": activity["activityId"]})
 
     # -----------------------------
-    # PUT /activity-log  (update)
+    # PUT /activity-log (update)
     # -----------------------------
     if method == 'PUT' and path.endswith('/activity-log'):
         activityId = data.get('activityId')
         if not activityId:
             return _resp(400, {"error": "Missing activityId"})
 
-        # Allow updating the same fields you create (description, not 'details')
         allowed = ["activityType", "description", "mood", "timestamp", "bookmark"]
         update_fields = {k: v for k, v in data.items() if k in allowed}
         update_fields['lastUpdated'] = datetime.utcnow().isoformat()
 
         result = activities.update_one({"activityId": activityId}, {"$set": update_fields})
-        if result.matched_count:
-            return _resp(200, {"message": "Activity updated"})
-        else:
-            return _resp(404, {"error": "Activity not found"})
+        return _resp(200, {"message": "Activity updated"} if result.matched_count else {"error": "Activity not found"})
 
-    # --------------------------------------------------------
-    # GET /activity-log  (filters + pagination via querystring)
-    # --------------------------------------------------------
+    # -----------------------------
+    # GET /activity-log (paged)
+    # -----------------------------
     if method == 'GET' and path.endswith('/activity-log'):
         user_id = get_param('userId')
         activity_type = get_param('activityType')
         page = get_param('page', 1, int)
         page_size = get_param('pageSize', 10, int)
-        start_date = get_param('startDate')  # ISO-8601 string expected
+        start_date = get_param('startDate')
         end_date = get_param('endDate')
         sort_order = int(get_param('sortOrder', 1))  # 1=asc, 0=desc
         sort_dir = 1 if sort_order == 1 else -1
 
-        # Build Mongo query
         query = {}
-        if user_id:
-            query['userId'] = user_id
-        if activity_type:
-            query['activityType'] = activity_type
+        if user_id: query['userId'] = user_id
+        if activity_type: query['activityType'] = activity_type
         if start_date or end_date:
             query['timestamp'] = {}
-            if start_date:
-                query['timestamp']['$gte'] = start_date
-            if end_date:
-                query['timestamp']['$lte'] = end_date
+            if start_date: query['timestamp']['$gte'] = start_date
+            if end_date:   query['timestamp']['$lte'] = end_date
 
         total = activities.count_documents(query)
-        cursor = (
-            activities.find(query)
-            .sort("timestamp", sort_dir)
-            .skip(max(0, (page - 1) * page_size))
-            .limit(page_size)
-        )
+        cursor = (activities.find(query)
+                           .sort("timestamp", sort_dir)
+                           .skip(max(0, (page - 1) * page_size))
+                           .limit(page_size))
 
         items = [{k: v for k, v in doc.items() if k != '_id'} for doc in cursor]
-        count = len(items)
         total_pages = (total + page_size - 1) // page_size if page_size > 0 else 1
 
         return _resp(200, {
             "items": items,
             "page": page,
             "pageSize": page_size,
-            "count": count,
+            "count": len(items),
             "total": total,
             "totalPages": total_pages,
             "hasNextPage": (page * page_size) < total,
             "hasPrevPage": page > 1,
             "appliedFilters": {
-                "userId": user_id,
-                "activityType": activity_type,
-                "startDate": start_date,
-                "endDate": end_date,
-                "page": page,
-                "pageSize": page_size
+                "userId": user_id, "activityType": activity_type,
+                "startDate": start_date, "endDate": end_date,
+                "page": page, "pageSize": page_size
             }
         })
 
-    # ---------------------------------------
-    # GET /user-logs/{userId} (legacy endpoint)
-    # ---------------------------------------
+    # -----------------------------
+    # Legacy: GET /user-logs/{userId}
+    # -----------------------------
     if method == 'GET' and '/user-logs/' in path:
         userId = path.split('/user-logs/')[-1]
         if not userId:
@@ -216,13 +289,14 @@ bookmark: {latest.get('bookmark','')}
         query = {"userId": userId}
         if startDate or endDate:
             query['timestamp'] = {}
-            if startDate:
-                query['timestamp']['$gte'] = startDate
-            if endDate:
-                query['timestamp']['$lte'] = endDate
+            if startDate: query['timestamp']['$gte'] = startDate
+            if endDate:   query['timestamp']['$lte'] = endDate
         page = get_param('page', 1, int)
         page_size = get_param('pageSize', 10, int)
-        cursor = activities.find(query).sort("timestamp", -1).skip(max(0, (page - 1) * page_size)).limit(page_size)
+        cursor = (activities.find(query)
+                           .sort("timestamp", -1)
+                           .skip(max(0, (page - 1) * page_size))
+                           .limit(page_size))
         logs = [{k: v for k, v in doc.items() if k != '_id'} for doc in cursor]
         return _resp(200, {"logs": logs, "page": page, "pageSize": page_size})
 
