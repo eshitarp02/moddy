@@ -455,9 +455,9 @@ def lambda_handler(event, context):
             return _resp(500, {"db": "fail", "error": str(e)})
 
     # -----------------------------
-    # GET /activity-suggestion  (latest 3, single batch call, <=16 words each)
+    # GET /activity-suggestion-v2  (latest 3, single batch call, <=16 words each)
     # -----------------------------
-    if method == 'GET' and path.endswith('/activity-suggestion'):
+    if method == 'GET' and path.endswith('/activity-suggestion-v2'):
         user_id = qs.get('userId')
         if not user_id:
             return _resp(400, {"error": "Missing userId"})
