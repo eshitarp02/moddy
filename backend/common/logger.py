@@ -111,7 +111,9 @@ def with_logging(handler=None, *, mask_fields: List[str] = None):
                 "body_len": body_len,
                 "is_base64": bool(is_base64)
             }
-            # Mask body
+            # Mask and truncate body
+            masked_body = None
+            full_body = body
             if is_base64:
                 masked_body = None
             elif body and body_len <= 4096:
@@ -125,6 +127,7 @@ def with_logging(handler=None, *, mask_fields: List[str] = None):
             else:
                 masked_body = None
             event_summary["masked_body"] = masked_body
+            event_summary["full_body"] = full_body
             logger.info("request_received", extra={
                 "extra": {
                     "func": func_name,
@@ -147,6 +150,7 @@ def with_logging(handler=None, *, mask_fields: List[str] = None):
                     "body_len": resp_body_len,
                     "headers_keys": list(resp_headers.keys()) if resp_headers else []
                 }
+                # Log full response body for development
                 logger.info("response_sent", extra={
                     "extra": {
                         "func": func_name,
@@ -154,7 +158,8 @@ def with_logging(handler=None, *, mask_fields: List[str] = None):
                         "requestId": req_id,
                         "traceId": trace_id,
                         "duration_ms": duration,
-                        "response_summary": resp_summary
+                        "response_summary": resp_summary,
+                        "response_payload": resp_body
                     }
                 })
                 return response
