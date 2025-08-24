@@ -1,5 +1,4 @@
 import os
-import os
 import json
 import uuid
 import hashlib
@@ -9,6 +8,17 @@ from typing import Any, Dict, List, Tuple, Optional
 import boto3
 from pymongo import MongoClient, DESCENDING
 
+import os
+import json
+import uuid
+import hashlib
+from datetime import datetime, timezone, timedelta
+from typing import Any, Dict, List, Tuple, Optional
+import boto3
+from pymongo import MongoClient, DESCENDING
+from common.logger import get_logger, with_logging
+
+logger = get_logger(__name__)
 # -----------------------------
 # DB (DocDB requires TLS; dev-safe: skip CA verification)
 # -----------------------------
@@ -74,6 +84,7 @@ def _extract_http_meta(event: Dict[str, Any]) -> Tuple[str, str, Dict[str, Any]]
 # -----------------------------
 # Lambda handler
 # -----------------------------
+@with_logging()
 def lambda_handler(event, context):
     # 1) Extract HTTP meta FIRST
     method, path, qs = _extract_http_meta(event)
@@ -89,6 +100,7 @@ def lambda_handler(event, context):
         try:
             data = json.loads(body)
         except Exception:
+            logger.warning("Failed to parse body as JSON.")
             data = {}
     else:
         data = body or {}
@@ -101,6 +113,7 @@ def lambda_handler(event, context):
             try:
                 return cast(val)
             except Exception:
+                logger.warning(f"Failed to cast param {name} value {val}")
                 return default
         return val
 
@@ -112,12 +125,10 @@ def lambda_handler(event, context):
             db.command("ping")
             return _resp(200, {"db": "ok"})
         except Exception as e:
+            logger.error(f"DB ping failed: {e}")
             return _resp(500, {"db": "fail", "error": str(e)})
 
-    # -----------------------------
-    # GET /activity-suggestion (and /activity-suggestion-v2)
-    # latest 3, single batch call, <=16 words each
-    # Supports ?fresh=1 to bypass cache and vary phrasing,
+    # ...existing code...
     # and ?temperature, ?top_p for sampling overrides.
     # -----------------------------
     if method == 'GET' and (path.endswith('/activity-suggestion') or path.endswith('/activity-suggestion-v2')):

@@ -1,10 +1,17 @@
-import os
 import json
 import logging
 from datetime import datetime
 from pymongo import MongoClient
 import uuid
 
+import os
+import json
+from datetime import datetime
+from pymongo import MongoClient
+import uuid
+from common.logger import get_logger, with_logging
+
+logger = get_logger(__name__)
 def validate_activity(data):
     required_fields = ['user_id', 'timestamp', 'activity_type', 'title']
     for field in required_fields:
@@ -28,15 +35,13 @@ def get_db():
     )
     return client['moodmark']
 
+
+@with_logging()
 def lambda_handler(event, context):
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
     try:
         db = get_db()
         activities = db['activities']
         users = db['users']
-
-        logger.info(f"Incoming event: {json.dumps(event)}")
 
         body = event.get('body')
         if isinstance(body, str):
@@ -44,10 +49,7 @@ def lambda_handler(event, context):
         else:
             data = body
 
-        logger.info(f"Parsed data: {json.dumps(data)}")
-
         valid, msg = validate_activity(data)
-        logger.info(f"Validation result: {valid}, {msg}")
         if not valid:
             logger.warning(f"Validation failed: {msg}")
             return {
@@ -57,7 +59,6 @@ def lambda_handler(event, context):
 
         user_id = str(data['user_id'])
         user_doc = users.find_one({'userId': user_id})
-        logger.info(f"User lookup for userId={user_id}: {user_doc}")
         if not user_doc:
             logger.warning(f"User not found: {user_id}")
             return {
@@ -84,14 +85,14 @@ def lambda_handler(event, context):
         }
 
     except (ValueError, json.JSONDecodeError):
-        logger.exception("Invalid JSON input.")
+        logger.error("Invalid JSON input.")
         return {
             "statusCode": 400,
             "body": json.dumps({"error": "Invalid JSON input."})
         }
 
     except Exception as e:
-        logger.exception("Unexpected error.")
+        logger.error(f"Unexpected error: {e}")
         return {
             "statusCode": 500,
             "body": json.dumps({"error": "Internal server error."})

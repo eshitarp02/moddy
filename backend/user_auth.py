@@ -1,10 +1,18 @@
-import os
 import json
 import uuid
 import bcrypt
 from pymongo import MongoClient
 from botocore.exceptions import ClientError
 
+import os
+import json
+import uuid
+import bcrypt
+from pymongo import MongoClient
+from botocore.exceptions import ClientError
+from common.logger import get_logger, with_logging
+
+logger = get_logger(__name__)
 def get_db():
     uri = os.environ.get('DOCDB_URI')
     username = os.environ.get('DOCDB_USER')
@@ -21,6 +29,8 @@ def get_db():
     )
     return client['moodmark']
 
+
+@with_logging()
 def lambda_handler(event, context):
     try:
         body = event.get('body')
@@ -47,6 +57,7 @@ def lambda_handler(event, context):
             if provider == 'email' and not password:
                 missing_fields.append('password')
             if missing_fields:
+                logger.warning(f"Missing required field(s): {', '.join(missing_fields)}")
                 return {
                     "statusCode": 400,
                     "body": json.dumps({"error": f"Missing required field(s): {', '.join(missing_fields)}"})
@@ -55,6 +66,7 @@ def lambda_handler(event, context):
             email = email.strip().lower()
             existing = users.find_one({"email": email, "provider": provider})
             if existing:
+                logger.warning("User with this email already exists")
                 return {
                     "statusCode": 409,
                     "body": json.dumps({"error": "User with this email already exists"})
@@ -77,6 +89,7 @@ def lambda_handler(event, context):
                     "providerId": providerId
                 }
             users.insert_one(user)
+            logger.info(f"User registered: {user['userId']}")
             return {
                 "statusCode": 201,
                 "body": json.dumps({"message": "User registered", "userId": user["userId"]})
@@ -96,20 +109,25 @@ def lambda_handler(event, context):
                 # Case-insensitive name lookup
                 user = users.find_one({"name": re.compile(f"^{re.escape(username)}$", re.IGNORECASE)})
             if not user:
+                logger.warning("User not registered, please register.")
                 return {
                     "statusCode": 404,
                     "body": json.dumps({"error": "User not registered, please register."})
                 }
             if not bcrypt.checkpw(password.encode(), user['password'].encode()):
+                logger.warning("Incorrect password.")
                 return {
                     "statusCode": 401,
                     "body": json.dumps({"error": "Incorrect password."})
                 }
+            logger.info(f"User login successful: {user['userId']}")
             return {
                 "statusCode": 200,
                 "body": json.dumps({"userId": user["userId"]})
             }
 
+        logger.warning("Invalid request. Please provide username and password.")
         return {"statusCode": 400, "body": json.dumps({"error": "Invalid request. Please provide username and password."})}
     except Exception as e:
+        logger.error(f"Exception in lambda_handler: {e}")
         return {"statusCode": 500, "body": json.dumps({"error": str(e)})}

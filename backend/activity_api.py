@@ -1,4 +1,3 @@
-import os
 import json
 import uuid
 from datetime import datetime
@@ -7,6 +6,16 @@ from typing import Any, Dict, List, Tuple
 import boto3
 from pymongo import MongoClient, DESCENDING
 
+import os
+import json
+import uuid
+from datetime import datetime
+from typing import Any, Dict, List, Tuple
+import boto3
+from pymongo import MongoClient, DESCENDING
+from common.logger import get_logger, with_logging
+
+logger = get_logger(__name__)
 # -----------------------------
 # DB (DocDB requires TLS; dev-safe: skip CA verification)
 # -----------------------------
@@ -126,6 +135,7 @@ def _generate_lines(doc: Dict[str, Any]) -> List[str]:
 # -----------------------------
 # Lambda handler
 # -----------------------------
+@with_logging()
 def lambda_handler(event, context):
     # 1) Extract HTTP meta FIRST
     method, path, qs = _extract_http_meta(event)
